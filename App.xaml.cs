@@ -14,6 +14,13 @@ public partial class App : Application
         base.OnStartup(e);
     }
 
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        if (MainWindow is BLESerialTerminal.MainWindow window)
+            window.PrepareRt950Rtx1AutoUi();
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         RuntimeDiagnostics.Write("APP_EXIT", $"Application exit code={e.ApplicationExitCode}");
