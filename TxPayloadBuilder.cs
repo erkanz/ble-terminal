@@ -21,6 +21,7 @@ internal static class TxPayloadBuilder
 
         byte[] ending = lineEnding switch
         {
+            TxLineEnding.None => Array.Empty<byte>(),
             TxLineEnding.Lf => new byte[] { 0x0A },
             TxLineEnding.Cr => new byte[] { 0x0D },
             TxLineEnding.CrLf => new byte[] { 0x0D, 0x0A },
