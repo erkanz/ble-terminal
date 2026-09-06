@@ -97,8 +97,10 @@ try
 
     Check(replay.RawRxEvents == 2 && replay.RawRxBytes == kissFrame.Length, "offline replay consumes only captured raw RX events");
     Check(replay.KissFrames == 1 && decoded.Count == 1, "fragmented KISS frame reassembles during offline replay");
-    Check(decoded[0].Ax25 != null && decoded[0].Ax25!.FrameType == "UI" && decoded[0].Ax25.Pid == 0xF0, "offline replay AX.25 decode");
-    Check(decoded[0].Aprs != null && decoded[0].Aprs!.RawInformation.StartsWith("!3412.73N/", StringComparison.Ordinal), "offline replay APRS result matches RT-950 fixture");
+    Ax25Packet? replayAx25 = decoded[0].Ax25;
+    AprsPacket? replayAprs = decoded[0].Aprs;
+    Check(replayAx25 != null && replayAx25.FrameType == "UI" && replayAx25.Pid == 0xF0, "offline replay AX.25 decode");
+    Check(replayAprs != null && replayAprs.RawInformation.StartsWith("!3412.73N/", StringComparison.Ordinal), "offline replay APRS result matches RT-950 fixture");
 
     string firstSummary = decoded[0].Summary;
     replay.Reset();
