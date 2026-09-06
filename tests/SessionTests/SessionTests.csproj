@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../BleUuid.cs" Link="BleUuid.cs" />
+    <Compile Include="../../StructuredLog.cs" Link="StructuredLog.cs" />
+    <Compile Include="../../SessionCapture.cs" Link="SessionCapture.cs" />
+    <Compile Include="../../SessionReplayProcessor.cs" Link="SessionReplayProcessor.cs" />
+    <Compile Include="../../KissStreamDecoder.cs" Link="KissStreamDecoder.cs" />
+    <Compile Include="../../ProtocolModels.cs" Link="ProtocolModels.cs" />
+    <Compile Include="../../Ax25Decoder.cs" Link="Ax25Decoder.cs" />
+    <Compile Include="../../AprsDecoder.cs" Link="AprsDecoder.cs" />
+  </ItemGroup>
+</Project>
