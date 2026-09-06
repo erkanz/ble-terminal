@@ -1,0 +1,12 @@
+BLE Terminal architecture refactor request received 2026-09-06.
+
+Scope:
+- Keep the application a general-purpose BLE terminal by default.
+- RT950 and KISS become independent, opt-in feature modules.
+- RT950 transport: FFE0 service; FFE1 normal data write/notify; FF31 one-time BLE unlock only.
+- RT950 unlock frame: 3F 3F 3F 3F 02 2E 17 1D 5E 57 25 2F 57 13 62 56 04 4B 23 42.
+- OEM PROGRAMBT9000U and model query use FFE1 after unlock.
+- KISS parsing is disabled unless KISS Tools + RX Decoder are enabled; raw BLE visibility is preserved.
+- Command workspace becomes dynamic/unbounded, persistent, independently queued, with per-row route/write/mode/line-ending overrides.
+
+This file is a short repository-side scope marker; implementation and acceptance evidence live in the feature branch/PR and test checklist.
