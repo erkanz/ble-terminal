@@ -1,0 +1,26 @@
+# .NET / Visual Studio
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Local publish output
+publish/
+dist/
+
+# Local SDK bootstrap
+.dotnet-ms/
+dotnet-install.sh
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# Logs
+*.log
+
+# Generated from Assets/BLESerialTerminal.ico.b64
+Assets/BLESerialTerminal.ico
