@@ -8,6 +8,7 @@ internal sealed class OptionalFeatureSettings
     public bool KissToolsEnabled { get; set; }
     public bool KissRxDecoderEnabled { get; set; } = true;
     public bool KissShowRawFrames { get; set; } = true;
+    public bool KissShowDecoded { get; set; } = true;
 }
 
 internal enum Rt950UnlockState
