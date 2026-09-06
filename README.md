@@ -1,29 +1,96 @@
 # BLE Serial Terminal
 
-Native Windows BLE/GATT serial terminal and diagnostic tool for .NET 8 / WPF.
+Native Windows BLE/GATT serial terminal and diagnostic tool built with .NET 8 / WPF.
 
-This repository is the canonical source and build location for the project.
+This repository is the **canonical source and build location** for the project.
 
 ## Current baseline
 
-- Auto Detect BLE-UART (Nordic NUS, HM-10/FFE0-FFE1, generic UART-style GATT)
-- Radtel RT-950 Pro FFE0/FFE1 support
-- GATT Inspector with service/characteristic/descriptor browser
-- Multi-characteristic Notify/Indicate, manual Read/Write
-- Raw BLE notification logging and KISS stream reassembly
-- Full dark mode, terminal color customization, export log
-- Self-contained single-file Windows x64 build
+- Auto Detect BLE-UART
+  - Nordic UART Service (NUS)
+  - HM-10 / FFE0-FFE1
+  - generic UART-style GATT profiles
+- Radtel RT-950 Pro FFE0/FFE1 KISS profile support
+- Cached Auto Detect GATT objects to avoid RT-950 FFE0 re-enumeration / false `AccessDenied` negatives
+- Real CCCD Notify subscription result logging
+- Raw BLE notification logging before KISS parsing
+- GATT Inspector
+  - all services / characteristics / descriptors
+  - characteristic properties
+  - manual Read / Write
+  - multi-characteristic Notify / Indicate
+  - source/reuse metadata for cached Auto Detect objects
+- Per-characteristic KISS stream reassembly with escape handling
+- Full dark mode and dark scrollbars
+- Configurable serial output foreground/background colors
+- File / View / About menus and Export Log
+- LF default line ending
+- Local echo default off
+- Enter-to-send
+- Transparent multi-resolution application icon
+- Self-contained single-file Windows x64 publish
 
-## Build
+## Canonical Windows build
 
-GitHub Actions is the canonical build path. Every push to `main` and every manual workflow run builds the self-contained Windows x64 EXE and publishes it as a workflow artifact.
+GitHub Actions is the primary build path. Every push to `main`, pull request, and manual workflow run executes the regression checks and builds the Windows x64 application on a real Windows runner.
 
-Tagged versions (`v*`) are additionally published to GitHub Releases with the EXE and SHA-256 checksum.
+Open:
 
-Local Windows build is still supported with `PUBLISH_SINGLE_EXE_WIN64.bat`.
+**Actions → Build Windows EXE**
 
-## Requirements to run
+The workflow produces:
 
-- Windows 10 2004+ or Windows 11
+```text
+BLESerialTerminal.exe
+BLESerialTerminal.exe.sha256
+```
+
+The EXE is:
+
+- Windows x64
+- self-contained
+- single-file
+- no separate .NET runtime installation required on the target PC
+
+For tagged versions (`v*`), the same EXE and checksum are automatically attached to a GitHub Release.
+
+## Local Windows publish
+
+With .NET 8 SDK installed:
+
+```bat
+PUBLISH_SINGLE_EXE_WIN64.bat
+```
+
+## Ubuntu cross-build
+
+The historical Ubuntu cross-publish helper remains in the repository for compatibility, but GitHub Actions on `windows-latest` is now the authoritative release build environment.
+
+## Runtime requirements
+
+- Windows 10 2004+ or Windows 11 x64
 - Bluetooth Low Energy adapter
-- No separate .NET installation is required for the self-contained release EXE
+
+## RT-950 Pro debug target
+
+Expected Auto Detect profile:
+
+```text
+profile=RADTEL_RT950_KISS
+service=FFE0
+write=FFE1
+notify=FFE1
+sameCharacteristic=true
+```
+
+Expected data-channel sequence:
+
+```text
+FFE1 FOUND
+FFE1 VALUECHANGED HANDLER ATTACHED
+FFE1 CCCD WRITE RESULT=Success
+RADTEL KISS READY
+RAW BLE NOTIFICATION
+```
+
+See `RT950_TEST_CHECKLIST.txt` and `V13_RT950_GATT_CACHE_FIX.txt` for current diagnostics and regression expectations.
