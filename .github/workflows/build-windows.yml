@@ -57,6 +57,10 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/SessionTests/SessionTests.csproj -c Release
 
+      - name: Manual RT950 GATT TX tests
+        shell: pwsh
+        run: dotnet run --project tests/ManualTxTests/ManualTxTests.csproj -c Release
+
       - name: Restore
         shell: pwsh
         run: dotnet restore BLESerialTerminal.csproj -r win-x64
