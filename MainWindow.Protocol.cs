@@ -31,6 +31,7 @@ public partial class MainWindow
         }
         _decodedPacketsWindow = null;
         CloseNotificationMonitorWindow();
+        CloseSessionCaptureWindow();
         base.OnClosed(e);
     }
 
