@@ -34,7 +34,7 @@ checks = {
     'bridge menu item is installed under View': 'KISS TCP Bridge...' in main and 'InstallKissTcpBridgeMenuItem' in main,
     'bridge UI exposes endpoint/client/byte/frame/backpressure counters': all(x in xaml for x in ['EndpointTextBlock', 'ClientsTextBlock', 'BleRxTextBlock', 'TcpRxTextBlock', 'BackpressureTextBlock']),
     'bridge event UI is bounded and virtualized': 'MaxEventRows = 2000' in window and 'VirtualizingPanel.VirtualizationMode="Recycling"' in xaml,
-    'loopback network tests cover RX TX multi-client reconnect': all(x in tests for x in ['BLE->TCP preserves raw KISS bytes exactly', 'TCP stream bytes reach BLE writer unchanged', 'multiple clients stay independent', 'fresh BLE connection context']),
+    'loopback network tests cover RX TX multi-client reconnect': all(x in tests for x in ['BLE->TCP preserves raw KISS bytes exactly', 'TCP stream bytes reach BLE writer unchanged', 'multiple clients stay independent', 'new BLE connection context remains ready']),
 }
 
 try:
