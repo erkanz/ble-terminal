@@ -1,14 +1,83 @@
 using System.Windows;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Storage.Streams;
 
 namespace BLESerialTerminal;
 
 public partial class MainWindow
 {
-    private const int MaxNotificationCaptureHistory = 10000;
-    private readonly NotificationCaptureStore _notificationCaptureStore = new(MaxNotificationCaptureHistory);
+    private readonly NotificationCaptureStore _notificationCaptureStore = NotificationCaptureHub.Store;
     private NotificationMonitorWindow? _notificationMonitorWindow;
+    private GattCharacteristic? _notificationCaptureCharacteristic;
+    private KissStreamDecoder _notificationMonitorKissDecoder = new();
     private string _terminalNotificationMode = "Notify/Indicate";
+
+    private void InitializeNotificationCaptureHooks()
+    {
+        GattInspectorButton.IsEnabledChanged += NotificationConnectionUiStateChanged;
+        SyncMainNotificationCaptureHandler();
+    }
+
+    private void ShutdownNotificationCaptureHooks()
+    {
+        GattInspectorButton.IsEnabledChanged -= NotificationConnectionUiStateChanged;
+        DetachMainNotificationCaptureHandler();
+    }
+
+    private void NotificationConnectionUiStateChanged(object sender, DependencyPropertyChangedEventArgs e) =>
+        SyncMainNotificationCaptureHandler();
+
+    private void SyncMainNotificationCaptureHandler()
+    {
+        GattCharacteristic? target = GattInspectorButton.IsEnabled ? _notifyCharacteristic : null;
+        if (ReferenceEquals(target, _notificationCaptureCharacteristic))
+            return;
+
+        DetachMainNotificationCaptureHandler();
+        if (target == null)
+            return;
+
+        _notificationMonitorKissDecoder = new KissStreamDecoder();
+        _terminalNotificationMode = target.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Notify)
+            ? "Notify"
+            : target.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Indicate)
+                ? "Indicate"
+                : "Notify/Indicate";
+
+        target.ValueChanged += NotificationCaptureCharacteristic_ValueChanged;
+        _notificationCaptureCharacteristic = target;
+    }
+
+    private void DetachMainNotificationCaptureHandler()
+    {
+        if (_notificationCaptureCharacteristic != null)
+        {
+            try { _notificationCaptureCharacteristic.ValueChanged -= NotificationCaptureCharacteristic_ValueChanged; } catch { }
+        }
+        _notificationCaptureCharacteristic = null;
+        _notificationMonitorKissDecoder = new KissStreamDecoder();
+    }
+
+    private void NotificationCaptureCharacteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+    {
+        try
+        {
+            using DataReader reader = DataReader.FromBuffer(args.CharacteristicValue);
+            byte[] data = new byte[checked((int)reader.UnconsumedBufferLength)];
+            reader.ReadBytes(data);
+
+            int? kissFrames = null;
+            if (_autoGatt.IsRadtelRt950Kiss && BleUuid.Is(sender.Uuid, "FFE1"))
+                kissFrames = _notificationMonitorKissDecoder.Push(data).Count;
+
+            NotificationRecord record = CaptureMainNotification(sender, data);
+            record.SetKissFrameCount(kissFrames);
+        }
+        catch
+        {
+            // Monitoring is diagnostic-only and must never interfere with the terminal RX path.
+        }
+    }
 
     private void NotificationMonitorMenuItem_Click(object sender, RoutedEventArgs e)
     {
