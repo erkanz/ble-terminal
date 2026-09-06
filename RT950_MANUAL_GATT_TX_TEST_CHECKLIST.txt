@@ -1,0 +1,318 @@
+BLE SERIAL TERMINAL - RT950 MANUAL GATT TX TEST CHECKLIST
+========================================================
+Date created: 2026-09-06
+Scope: BLE Serial Terminal application only
+Firmware changes: NONE
+APRSdroid changes: NONE
+Radio firmware/code changes: NONE
+
+PURPOSE
+-------
+Verify the RT-950 Pro host-to-radio GATT write path independently on FFE1 and FF31 while preserving the already-qualified FFE1 notification/KISS RX path.
+
+IMPORTANT RESULT LANGUAGE
+-------------------------
+A successful Windows GATT write means only that the Windows BLE stack reports the GATT operation as successful.
+It does NOT prove that the RT-950 transmitted RF or accepted an OEM command at the radio-application layer.
+An OEM response/ACK received on FFE1 is separate evidence.
+
+PRECONDITIONS
+-------------
+[ ] Use the newest successful GitHub Actions artifact from main.
+[ ] RT-950 Pro powered on and BLE available.
+[ ] Auto detect BLE-UART GATT profile remains enabled.
+[ ] Connect to the RT-950 and wait for the normal RT950 readiness chain.
+
+EXPECTED BASELINE
+-----------------
+[ ] profile=RADTEL_RT950_KISS
+[ ] service=FFE0
+[ ] notify=FFE1
+[ ] FFE1 VALUECHANGED HANDLER ATTACHED
+[ ] FFE1 CCCD WRITE RESULT=Success
+[ ] FFE1 NOTIFY ACTIVE
+[ ] RADTEL KISS READY
+[ ] BLE NOTIFY ACTIVE block reports SERVICE=FFE0 UUID=FFE1 CCCD=SUCCESS
+
+A. LIVE GATT PROPERTY CHECK
+---------------------------
+After connection, inspect the serial diagnostic output.
+
+Expected entries include:
+
+*** GATT SERVICE
+*** UUID=FFE0
+
+and one block for every retained FFE0 characteristic. Verify at minimum FFE1 and, when the radio exposes it, FF31.
+
+For each characteristic record the REAL runtime properties shown by the app:
+
+UUID=FFE1
+READ=____
+WRITE=____
+WRITE_WITHOUT_RESPONSE=____
+NOTIFY=____
+INDICATE=____
+
+UUID=FF31
+READ=____
+WRITE=____
+WRITE_WITHOUT_RESPONSE=____
+NOTIFY=____
+INDICATE=____
+
+Do not assume FF31 is writable. If the selected write type is not supported, Send must be disabled or the app must show an explicit error.
+
+A RESULT: PASS / FAIL / NOT AVAILABLE
+Notes:
+
+
+B. EXISTING FFE1 RX REGRESSION
+------------------------------
+Before changing the TX characteristic:
+[ ] receive at least one normal RT-950 APRS/KISS packet
+[ ] RAW BLE NOTIFICATION appears from UUID=FFE1
+[ ] LEN is present
+[ ] HEX is present
+[ ] fragmented C0 ... C0 KISS data still reassembles correctly
+[ ] View -> Decoded KISS / AX.25 / APRS packets... receives the decoded packet
+[ ] AX.25/APRS decode summary is NOT injected into the serial terminal output
+
+B RESULT: PASS / FAIL
+
+
+C. LOAD OEM TEST COMMANDS
+-------------------------
+Click:
+    Load RT950 Test Commands
+
+Expected, without transmitting anything:
+- Command 1 label: OEM Handshake
+- Command 1: 50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+- Command 2 label: Model Query
+- Command 2: 4D
+- Command 3 label: Reserved Test
+- Command 3: empty
+- Command 4: empty
+- Command 5: empty
+
+[ ] loading commands does not transmit BLE data
+[ ] user command rows can be changed from Settings -> Number of TX command rows -> 1..5
+[ ] hiding rows does not erase their contents
+
+C RESULT: PASS / FAIL
+
+
+D. FF31 OEM WRITE TEST
+----------------------
+Click:
+    RT950 OEM TEST
+
+Expected routing/settings:
+Service              = FFE0
+Notify characteristic = FFE1
+Write characteristic  = FF31
+Write type             = With Response
+TX mode                = HEX
+Line ending             = NONE
+
+[ ] preset changes settings only and sends nothing automatically
+[ ] FFE1 notification remains active
+
+Send Command 1.
+Expected exact wire payload before any GATT result interpretation:
+
+50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+
+Expected write diagnostics for a one-chunk write:
+
+*** RAW BLE WRITE
+*** COMMAND_SLOT=1
+*** COMMAND_LABEL=OEM Handshake
+*** SERVICE=FFE0
+*** UUID=FF31
+*** TYPE=WITH_RESPONSE
+*** LEN=14
+*** HEX=50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+*** WRITE START RESULT=ACCEPTED
+
+Then WinRT completion result:
+
+*** WRITE COMPLETE
+*** COMMAND_SLOT=1
+*** UUID=FF31
+*** STATUS=SUCCESS
+*** STATUS_CODE=0
+
+or, if Windows reports a GATT failure, the real non-success status/status code and protocol error must be visible.
+
+If FFE1 returns one byte 06, additionally expect:
+
+*** RT950 OEM ACK RECEIVED: 06
+
+D RESULT:
+GATT START: ACCEPTED / REJECTED
+GATT COMPLETE: SUCCESS / FAIL
+STATUS_CODE: ______
+PROTOCOL_ERROR: ______
+FFE1 OEM ACK 06: YES / NO
+Other FFE1 response HEX:
+
+
+E. FFE1 WRITE COMPARISON TEST
+-----------------------------
+Do NOT change Command 1 payload.
+Click:
+    RT950 FFE1 TEST
+
+Expected routing/settings:
+Service              = FFE0
+Notify characteristic = FFE1
+Write characteristic  = FFE1
+Write type             = With Response
+TX mode                = HEX
+Line ending             = NONE
+
+Send Command 1 again.
+
+Expected RAW BLE WRITE block must now show:
+UUID=FFE1
+TYPE=WITH_RESPONSE
+LEN=14
+HEX=50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+
+E RESULT:
+GATT START: ACCEPTED / REJECTED
+GATT COMPLETE: SUCCESS / FAIL
+STATUS_CODE: ______
+PROTOCOL_ERROR: ______
+FFE1 OEM ACK 06: YES / NO
+Other FFE1 response HEX:
+
+
+F. HEX + NONE BYTE-EXACT TEST
+-----------------------------
+Select:
+TX mode = HEX
+Line ending = NONE
+
+Input:
+50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+
+[ ] RAW BLE WRITE LEN=14
+[ ] HEX ends in 55
+[ ] no 0A appended
+[ ] no 0D appended
+[ ] no other byte appended
+
+Also verify both HEX forms are accepted:
+[ ] 01 A0 FF
+[ ] 01A0FF
+
+Invalid examples must report an error and must not silently mutate/transmit:
+[ ] ABC
+[ ] GG
+
+F RESULT: PASS / FAIL
+
+
+G. WRITE TYPE TEST
+------------------
+For a characteristic whose live properties support the corresponding operation:
+
+[ ] With Response can be selected
+[ ] Without Response can be selected
+[ ] unsupported selected type disables Send or shows explicit error
+[ ] Without Response logs WRITE SUBMITTED NO_RESPONSE
+[ ] GATT status/result remains visible when WinRT returns one
+
+G RESULT: PASS / FAIL / PARTIAL (hardware property dependent)
+
+
+H. FIVE COMMAND ROW / QUEUE TEST
+--------------------------------
+Settings -> Number of TX command rows -> 5
+
+Prepare distinct commands in all visible rows. For example:
+1: 50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
+2: 4D
+3: 52 54 58 31
+4: 01 02 03 04
+5: AA 55 AA 55
+
+Rapidly click Send 1, Send 2, Send 3, Send 4, Send 5.
+
+Verify:
+[ ] each click logs TX QUEUED COMMAND_SLOT=N
+[ ] each write logs COMMAND_SLOT=N
+[ ] one write completes before the next queued write executes
+[ ] payloads never merge
+[ ] input fields are not cleared after send
+[ ] labels are not included in wire bytes
+[ ] all five command contents remain unchanged
+
+H RESULT: PASS / FAIL
+
+
+I. COMMAND PERSISTENCE TEST
+---------------------------
+[ ] set Number of TX command rows to 5
+[ ] assign labels and command contents
+[ ] close application normally
+[ ] reopen application
+[ ] row count is restored
+[ ] all five labels are restored
+[ ] all five command contents are restored
+[ ] set row count to 1, close/reopen, then return to 5
+[ ] hidden slot contents were not erased
+
+I RESULT: PASS / FAIL
+
+
+J. FFE1 RX AFTER MANUAL FF31 TX
+-------------------------------
+This is the critical regression sentinel.
+
+With:
+Notify = FFE1
+Write = FF31
+
+[ ] send at least one FF31 command
+[ ] receive another real RT-950 KISS/APRS packet afterward
+[ ] FFE1 RAW BLE NOTIFICATION still appears
+[ ] KISS reassembly still completes
+[ ] Decoded KISS / AX.25 / APRS window still receives packet
+[ ] no duplicate FFE1 CCCD write was caused merely by selecting FF31 as TX
+[ ] no FFE1 ValueChanged handler loss
+[ ] no Auto Detect cache ownership regression
+
+J RESULT: PASS / FAIL
+
+
+FINAL ACCEPTANCE MATRIX
+-----------------------
+PASS 1  RT950 connects: __________________
+PASS 2  FFE1 Notify active: ______________
+PASS 3  normal RT950 KISS RX works: _______
+PASS 4  FFE1 / FF31 Write selectable: _____
+PASS 5  With/Without Response selectable: _
+PASS 6  Line ending NONE selectable: ______
+PASS 7  HEX+NONE adds no byte: ____________
+PASS 8  real write UUID logged: ___________
+PASS 9  real GATT status code logged: ______
+PASS 10 FFE1 RX independent from TX route: _
+PASS 11 same payload tested FF31/FFE1: _____
+PASS 12 1-5 command rows: _________________
+PASS 13 each row has Send: _________________
+PASS 14 Send N sends row N only: __________
+PASS 15 row count setting 1-5: ____________
+PASS 16 hidden contents preserved: ________
+PASS 17 contents survive restart: _________
+PASS 18 rapid sends serialized: ___________
+PASS 19 payloads never merged: ____________
+PASS 20 COMMAND_SLOT=N logged: ____________
+PASS 21 Command 1 replaces old main TX box behavior: ____
+
+HARDWARE PHASE STATUS
+---------------------
+Do not mark this checklist COMPLETE until the real RT-950 results above are recorded.
