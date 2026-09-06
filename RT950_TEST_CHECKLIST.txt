@@ -4,86 +4,101 @@ RT-950 PRO v13 CACHE / FFE1 NOTIFY TEST CHECKLIST
 PHASE
 PHASE A - v13 HARDWARE QUALIFICATION + BASELINE FREEZE
 Automated build status: CI COMPLETE
-Hardware status: TEST PENDING
+Hardware status: PARTIAL PASS / REMAINING REGRESSION TESTS
+
+TEST SESSION
+Date: 2026-09-06
+Device: walkie-talkie / RT-950 family
+BLE address observed: E4:66:E5:78:29:E2
+Evidence: exported BLE Serial Terminal session log supplied after the current GitHub Actions build.
 
 AUTHORITATIVE BUILD
 [x] Canonical source is https://github.com/erkanz/ble-terminal main
 [x] GitHub Actions workflow "Build Windows EXE" is the authoritative Windows build
-[x] Latest verified baseline run before Phase A cleanup: 34013614569 = SUCCESS
+[x] Clean canonical workflow run 34013751226 = SUCCESS
+[x] Documentation/current-main workflow run 34013824529 = SUCCESS
 [x] Self-contained win-x64 single-file EXE was produced
-[x] EXE SHA-256 from run 34013614569:
-    3c7d51660779eebe206c9edcb8c1f7240b0ea9e135a84a729c9c66dde8f62343
 [x] Build artifact was uploaded successfully
-[ ] Download BLESerialTerminal-win-x64 from the latest successful main Actions run
-[ ] BLESerialTerminal.exe starts on Windows 10/11 x64 without separate .NET runtime
+[x] BLESerialTerminal-win-x64 was downloaded for the hardware session
+[x] BLESerialTerminal.exe starts and operates on Windows without a separate .NET runtime
 
 NOTE
 The historical Ubuntu publish helper may remain in the repository, but it is no longer
-the authoritative Phase A / release build path. Test the EXE produced by GitHub Actions.
+the authoritative Phase A / release build path. Hardware qualification uses the EXE
+produced by GitHub Actions.
 
 RADTEL SETTINGS
-[ ] Bluetooth = ON
-[ ] TNC Type = KISS(BLE)
-[ ] Reporting APP = Both
+[x] Bluetooth = ON (proven by successful BLE connection)
+[x] TNC Type = KISS(BLE) / BLE KISS data path active (proven by FFE0/FFE1 KISS frames)
+[ ] Reporting APP = Both (not independently proven by the Windows log)
 
 CONNECT / AUTO DETECT
-[ ] Scan finds walkie-talkie / RT-950
-[ ] Connect succeeds
-[ ] Log contains AUTO GATT
-[ ] profile=RADTEL_RT950_KISS
-[ ] service=FFE0
-[ ] write=FFE1
-[ ] notify=FFE1
-[ ] sameCharacteristic=true
-[ ] FFE1 PROPERTIES is logged
-[ ] FFE1 VALUECHANGED HANDLER ATTACHED is logged exactly once per connection
-[ ] FFE1 CCCD WRITE START is logged
-[ ] FFE1 CCCD WRITE RESULT=Success is logged
-[ ] FFE1 NOTIFY ACTIVE is logged only after Success
-[ ] RADTEL KISS READY is logged
+[x] Scan/select path reaches walkie-talkie / RT-950
+[x] Connect succeeds
+[x] Log contains AUTO GATT
+[x] profile=RADTEL_RT950_KISS
+[x] service=FFE0
+[x] write=FFE1
+[x] notify=FFE1
+[x] sameCharacteristic=true
+[x] FFE1 PROPERTIES is logged
+[x] FFE1 VALUECHANGED HANDLER ATTACHED is logged exactly once in the captured connection
+[x] FFE1 CCCD WRITE START is logged
+[x] FFE1 CCCD WRITE RESULT=Success is logged
+[x] FFE1 NOTIFY ACTIVE is logged only after Success
+[x] RADTEL KISS READY is logged
 
 STATE MACHINE
-[ ] BLE state = CONNECTED
-[ ] GATT state = DISCOVERED
-[ ] FFE1 = FOUND
-[ ] FFE1 Handler = YES
-[ ] FFE1 CCCD = SUCCESS
-[ ] RT950 KISS = READY
-[ ] If CCCD fails, RT950 KISS remains NOT READY and connection remains available for Inspector
+[x] BLE state = CONNECTED
+[x] GATT state = DISCOVERED
+[x] FFE1 = FOUND
+[x] FFE1 Handler = YES
+[x] FFE1 CCCD = SUCCESS
+[x] RT950 KISS = READY
+[ ] Forced CCCD-failure behavior still needs a reproducible failure if available; do not fabricate a PASS
 
 GATT INSPECTOR CACHE REUSE
-[ ] Open GATT Inspector after Auto Detect connection
-[ ] Log contains AUTO TERMINAL SUBSCRIPTION PROTECTED service=FFE0 notify=FFE1
-[ ] SERVICE FFE0 shows Source=AUTO-DETECT/REUSED
-[ ] FFE1 characteristic shows Source=AUTO-DETECT/REUSED and Reused=Yes
-[ ] Log contains FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync
-[ ] Inspector does NOT issue a second GetCharacteristicsAsync for cached FFE0
-[ ] Inspector reports FFE1 present: YES (from Auto Detect cache)
-[ ] FF31/FF32 may be YES or NO; neither is required for RT950 KISS readiness
-[ ] Closing/refreshing Inspector does not disable the main terminal FFE1 CCCD
-[ ] Cached service is not disposed by Inspector
+[x] GATT Inspector was opened after Auto Detect connection
+[x] Log contains AUTO TERMINAL SUBSCRIPTION PROTECTED service=FFE0 notify=FFE1
+[x] SERVICE FFE0 shows Source=AUTO-DETECT/REUSED
+[x] FFE1 characteristic is sourced from AUTO-DETECT/REUSED cache
+[x] Log contains FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync
+[x] Inspector does NOT issue a second GetCharacteristicsAsync for cached FFE0
+[x] Inspector reports FFE1 present: YES (from Auto Detect cache)
+[x] FF31/FF32 are not required for RT950 KISS readiness; observed FF31=YES, FF32=NO
+[ ] Closing Inspector does not disable the main terminal FFE1 CCCD - post-close RX test still required
+[ ] Refreshing Inspector does not disable/break main terminal RX - explicit refresh + RX test still required
+[ ] Cached service disposal/lifetime after Inspector close should be verified by continued post-close RX/reuse
 
 ACCESSDENIED REGRESSION
-[ ] No false FFE1 present: NO occurs after FFE0 AccessDenied/partial discovery
-[ ] If global service discovery is partial/fails but Auto cache is valid, cached FFE1 remains shown
-[ ] CCCD AccessDenied logs characteristic/service/source/connection/session/status
-[ ] Exception path logs HRESULT when available
+[ ] AccessDenied/partial-discovery failure was not reproduced in this successful session
+[ ] If global service discovery is partial/fails but Auto cache is valid, cached FFE1 remains shown - failure path not reproduced
+[ ] CCCD AccessDenied diagnostic path not exercised
+[ ] Exception/HRESULT diagnostic path not exercised
 
 RAW NOTIFICATION / KISS
-[ ] Send an APRS packet from another radio
-[ ] RT-950 itself decodes/receives the packet
-[ ] Windows log contains RAW BLE NOTIFICATION
-[ ] RAW log UUID=FFE1
-[ ] RAW log has LEN and HEX before any KISS RX output
-[ ] Fragmented C0...C0 KISS frame across multiple BLE notifications is reassembled
-[ ] KISS RX shows SOURCE=FFE1, LEN, PORT/CMD, RAW HEX, UNESCAPED
-[ ] Malformed/non-KISS bytes still appear in RAW BLE NOTIFICATION log
+[x] Real APRS/KISS traffic was received through RT-950
+[x] Windows log contains RAW BLE NOTIFICATION
+[x] RAW log UUID=FFE1
+[x] RAW log has LEN and HEX before KISS RX output
+[x] Fragmented C0...C0 KISS frame across multiple BLE notifications is reassembled
+[x] KISS RX shows SOURCE=FFE1, LEN, PORT/CMD, RAW HEX, UNESCAPED
+[x] Multiple real KISS frames were reconstructed successfully in the captured session
+[ ] Deliberately malformed/non-KISS byte visibility was not tested in this session
+
+Observed fragmentation example:
+- frame 1 arrived as 20 + 20 + 20 + 20 + 6 byte BLE notifications
+- complete KISS RX emitted only after trailing C0 arrived
+- reconstructed KISS LEN=84
+
+A second frame was also fragmented and reconstructed successfully with KISS LEN=91.
 
 INSPECTOR SUBSCRIPTION RECOVERY
-[ ] If initial main CCCD failed, open Inspector and select cached FFE1
-[ ] Enable Notify performs CCCD write on the cached FFE1 object
-[ ] Success updates main state to RT950 KISS READY
-[ ] If main CCCD is already active, Inspector Enable Notify skips duplicate CCCD write and only attaches its local handler
+[ ] Initial main CCCD failure did not occur naturally, so failure-recovery path is NOT REPRODUCED
+[ ] Cached FFE1 recovery CCCD write after an initial failure was not exercised
+[ ] Main state recovery to RT950 KISS READY after Inspector retry was not exercised
+[x] With main CCCD already active, Inspector reused the active subscription and skipped duplicate CCCD write
+[x] Log proves: AUTO NOTIFY REUSED uuid=FFE1 inspectorHandler=ATTACHED cccdWrite=SKIPPED existingCccdActive=true
 
 ESP32 / OTHER BLE UART REGRESSION
 [ ] Nordic NUS Auto Detect still connects and RX/TX works
@@ -92,10 +107,22 @@ ESP32 / OTHER BLE UART REGRESSION
 [ ] Manual Custom UUID mode still works
 
 OPERATION SERIALIZATION
-[ ] Main TX and Inspector read/write/CCCD/discovery do not overlap as independent GATT operations
-[ ] Notification callbacks continue while queued operations execute
-[ ] No GATT_BUSY-style behavior caused by concurrent app operations
+[x] No GATT_BUSY-style failure was observed during Auto Detect + Inspector discovery in this session
+[ ] Main TX plus Inspector read/write/CCCD concurrency test not explicitly exercised
+[ ] Notification callback continuity during queued manual GATT operations not explicitly exercised
+
+PHASE A CURRENT RESULT
+----------------------
+A1 AUTO DETECT: PASS
+A2 RAW RX / KISS REASSEMBLY: PASS for valid real traffic
+A3 CACHE REUSE: PASS for open/discovery path; post-close/post-refresh RX still pending
+A4 SUBSCRIPTION RECOVERY: active-subscription reuse PASS; failure-recovery path NOT REPRODUCED
+A5 OTHER BLE-UART REGRESSION: PENDING
 
 PHASE A COMPLETION RULE
-Do not mark Phase A COMPLETE until the required RT-950 hardware items above pass.
-A green GitHub Actions build is CI COMPLETE only; it is not proof of BLE hardware behavior.
+Do not mark Phase A COMPLETE yet.
+Remaining release-gate work is primarily:
+1) transmit another APRS packet after Inspector close and after Inspector refresh,
+2) document available NUS/ESP32/HM-10/manual-custom regression hardware,
+3) perform the UI quick regression from PHASE_A_HARDWARE_QUALIFICATION.txt,
+4) then update ROADMAP.txt with the final Phase A result and known-good Actions run.
