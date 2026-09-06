@@ -15,11 +15,13 @@ public partial class MainWindow
         KissStreamDecoder.AnyFrameCompleted += KissStreamDecoder_AnyFrameCompleted;
         InitializeNotificationCaptureHooks();
         InitializeLogExplorerHooks();
+        InitializeRt950TxDiagnostics();
     }
 
     protected override void OnClosed(EventArgs e)
     {
         KissStreamDecoder.AnyFrameCompleted -= KissStreamDecoder_AnyFrameCompleted;
+        ShutdownRt950TxDiagnostics();
         ShutdownNotificationCaptureHooks();
         ShutdownLogExplorerHooks();
         try
@@ -64,7 +66,9 @@ public partial class MainWindow
         DateTime timestamp = DateTime.Now;
 
         // Push() is called while the main RX dispatcher callback is still logging KISS.
-        // Queue protocol decode so RAW BLE and KISS logs remain visibly earlier than AX.25/APRS.
+        // Queue protocol decode so RAW BLE and KISS processing remains ordered, but keep
+        // AX.25/APRS decode text out of the serial terminal. The dedicated decoded window
+        // and structured diagnostic log own higher-layer decode presentation.
         Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame(timestamp, sourceCharacteristic, frame));
     }
 
@@ -75,18 +79,43 @@ public partial class MainWindow
         while (_decodedPackets.Count > MaxDecodedPacketHistory)
             _decodedPackets.RemoveAt(0);
 
+        string device = CurrentLogDevice();
         if (row.Ax25 != null)
         {
             string path = string.IsNullOrWhiteSpace(row.Ax25.Path) ? "-" : row.Ax25.Path;
             string pid = row.Ax25.Pid.HasValue ? row.Ax25.Pid.Value.ToString("X2") : "--";
-            AppendSystemLine($"AX25 RX SRC={row.Ax25.Source.Display} DST={row.Ax25.Destination.Display} PATH={path} TYPE={row.Ax25.FrameType} PID={pid}");
+            _structuredLogStore.Add(
+                LogCategory.AX25,
+                $"AX25 RX SRC={row.Ax25.Source.Display} DST={row.Ax25.Destination.Display} PATH={path} TYPE={row.Ax25.FrameType} PID={pid}",
+                direction: "RX",
+                device: device,
+                characteristic: sourceCharacteristic,
+                timestamp: timestamp,
+                data: frame.Data);
         }
         else if (!string.IsNullOrWhiteSpace(row.DecodeError))
         {
-            AppendSystemLine($"AX25 DECODE SKIPPED/FAILED: {row.DecodeError}");
+            _structuredLogStore.Add(
+                LogCategory.AX25,
+                $"AX25 DECODE SKIPPED/FAILED: {row.DecodeError}",
+                direction: "RX",
+                device: device,
+                characteristic: sourceCharacteristic,
+                isWarning: true,
+                timestamp: timestamp,
+                data: frame.Data);
         }
 
         if (row.Aprs != null)
-            AppendSystemLine($"APRS RX TYPE={row.Aprs.Category} SUMMARY={row.Aprs.Summary}");
+        {
+            _structuredLogStore.Add(
+                LogCategory.APRS,
+                $"APRS RX TYPE={row.Aprs.Category} SUMMARY={row.Aprs.Summary}",
+                direction: "RX",
+                device: device,
+                characteristic: sourceCharacteristic,
+                timestamp: timestamp,
+                data: row.Ax25?.Information ?? Array.Empty<byte>());
+        }
     }
 }
