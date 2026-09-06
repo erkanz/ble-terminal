@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-
 namespace BLESerialTerminal;
 
 internal enum LogCategory
@@ -116,9 +114,9 @@ internal static class LogCategoryClassifier
                                   u.Contains("UNAVAILABLE") || u.Contains("MALFORMED"));
 
         if (error)
-            return (LogCategory.ERROR, warning: false, error: true);
+            return (LogCategory.ERROR, Warning: false, Error: true);
         if (warning)
-            return (LogCategory.WARNING, warning: true, error: false);
+            return (LogCategory.WARNING, Warning: true, Error: false);
         if (u.Contains("KISS"))
             return (LogCategory.KISS, false, false);
         if (u.Contains("AX25") || u.Contains("AX.25"))
