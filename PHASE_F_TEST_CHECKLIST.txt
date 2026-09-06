@@ -1,0 +1,184 @@
+BLE SERIAL TERMINAL - PHASE F GATT SNAPSHOT / COMPARE TEST CHECKLIST
+===================================================================
+Date created: 2026-09-06
+Scope: BLE Serial Terminal Phase F
+Firmware changes: NONE
+Radio firmware changes: NONE
+
+PURPOSE
+-------
+Verify deterministic capture/export/import/compare of GATT database/state while preserving the qualified RT-950 Auto Detect cache/FFE1 notification path.
+
+ENTRY POINT
+-----------
+1. Connect to a BLE device.
+2. Open GATT Inspector.
+3. Click "Snapshot / Compare" in the Inspector toolbar.
+
+Snapshot capture refreshes the existing Inspector discovery path first. For the active Auto Detect service it reuses the existing cached service/characteristic objects; it does not intentionally issue a second FFE0 GetCharacteristicsAsync on the RT-950 cache-owned service and it does not write characteristic values.
+
+A. BASIC SNAPSHOT CAPTURE
+-------------------------
+[ ] Connect RT-950 and reach RADTEL KISS READY.
+[ ] Open GATT Inspector.
+[ ] Confirm FFE0/FFE1 appear normally.
+[ ] Click Snapshot / Compare.
+[ ] Capture Snapshot A.
+[ ] Snapshot A header shows device, address, timestamp, service count and characteristic count.
+[ ] Snapshot capture completes without disconnecting the radio.
+[ ] Normal FFE1 KISS/APRS RX still works after capture.
+
+A RESULT: PASS / FAIL
+
+
+B. SNAPSHOT CONTENT
+-------------------
+Export Snapshot A as TXT and JSON.
+
+Verify the snapshot contains:
+[ ] format/version
+[ ] capture timestamp
+[ ] device name/address/connection state
+[ ] GATT state / service discovery evidence
+[ ] Auto Detect profile
+[ ] Auto Detect service/write/notify mapping
+[ ] current manual service/write/notify route separately
+[ ] manual write type
+[ ] manual override flag
+[ ] services with short/full UUIDs
+[ ] characteristics with short/full UUIDs
+[ ] characteristic property flags
+[ ] source/reused/ownership metadata
+[ ] advertised Read/Write/WriteWithoutResponse/Notify/Indicate state
+[ ] CCCD-known-active state where known
+[ ] descriptors including 2902 when enumerated
+[ ] discovery/access evidence from Inspector diagnostics
+
+For RT-950 verify FFE0 and, when exposed by the radio, FFE1 / FF31 / FF32 details are retained.
+
+B RESULT: PASS / FAIL
+
+
+C. AUTO BASELINE VS MANUAL ROUTE
+--------------------------------
+With RT-950 connected:
+[ ] Capture A with normal Auto Detect route (FFE0 / FFE1 write / FFE1 notify).
+[ ] Change only the manual TX route to FF31 using RT950 OEM TEST, without sending.
+[ ] Capture B.
+[ ] Compare A -> B.
+[ ] Auto Detect baseline mapping remains unchanged.
+[ ] Manual Route / Write changes FFE1 -> FF31.
+[ ] Manual OverrideActive changes False -> True.
+[ ] No automatic TX occurs while changing route or capturing snapshots.
+
+C RESULT: PASS / FAIL
+
+
+D. IDENTICAL SNAPSHOT TEST
+--------------------------
+Without changing device/settings:
+[ ] Capture A.
+[ ] Capture B immediately afterward.
+[ ] Compare A -> B.
+[ ] No deterministic database/property/mapping differences are reported unless Windows discovery/access state genuinely changed.
+
+D RESULT: PASS / FAIL
+
+
+E. STRUCTURED SAVE / RELOAD
+---------------------------
+[ ] Save Snapshot A as *.gatt-snapshot.json.
+[ ] Close/reopen Snapshot / Compare if desired.
+[ ] Load the saved JSON into A.
+[ ] Load the same JSON into B.
+[ ] Compare reports IDENTICAL.
+[ ] Unknown extra JSON fields do not prevent loading a supported version.
+[ ] Unsupported future format version is rejected explicitly rather than misread.
+
+E RESULT: PASS / FAIL
+
+
+F. ADDED / REMOVED / PROPERTY DIFFERENCE
+----------------------------------------
+Use two devices, two firmware/settings states, or saved fixture snapshots where a real difference exists.
+
+Verify compare can show:
+[ ] added service
+[ ] removed service
+[ ] added characteristic
+[ ] removed characteristic
+[ ] characteristic Properties change
+[ ] Read/Write/WriteWithoutResponse/Notify/Indicate change
+[ ] descriptor added/removed
+[ ] cached/reused Source change
+[ ] Ownership change
+[ ] service DiscoveryStatus/access change
+[ ] Auto Detect mapping change
+[ ] manual route change
+
+F RESULT: PASS / FAIL / PARTIAL (depends on available comparison pair)
+
+
+G. RT950 PARTIAL / ACCESSDENIED USE CASE
+----------------------------------------
+If an AccessDenied/partial GATT state can be reproduced safely:
+[ ] Capture a known-good RT-950 snapshot.
+[ ] Capture the partial/AccessDenied state separately.
+[ ] Compare the pair.
+[ ] GATT/service discovery status difference is visible.
+[ ] Cached Auto Detect FFE0/FFE1 objects remain represented when Inspector retained them.
+[ ] the snapshot feature does not dispose Auto Detect-owned objects.
+[ ] reconnect restores a fresh connection-scoped context.
+
+If AccessDenied cannot be reproduced, mark this section NOT REPRODUCED rather than PASS.
+
+G RESULT: PASS / FAIL / NOT REPRODUCED
+
+
+H. RT950 VS HM-10 SIGNATURE
+---------------------------
+If HM-10 hardware is available:
+[ ] Capture RT-950 snapshot.
+[ ] Capture HM-10 snapshot.
+[ ] Compare.
+[ ] profile/mapping differences are visible.
+[ ] FFE0 characteristic differences (for example FF31/FF32 presence/property differences) are visible when present.
+[ ] HM-10 is not mislabeled RADTEL_RT950_KISS merely because it exposes FFE0/FFE1.
+
+H RESULT: PASS / FAIL / HARDWARE NOT AVAILABLE
+
+
+I. REGRESSION / LIFECYCLE
+-------------------------
+[ ] GATT Inspector Refresh still works.
+[ ] GATT Inspector Read/Write still works.
+[ ] Inspector Notify/Indicate controls still work.
+[ ] opening/closing Snapshot / Compare does not break FFE1 RX.
+[ ] capture does not create a competing CCCD subscription.
+[ ] disconnect while Snapshot / Compare is open fails capture cleanly.
+[ ] saved snapshots remain loadable for comparison.
+[ ] closing Inspector closes its owned Snapshot / Compare window.
+[ ] reconnect creates fresh wrappers and new snapshots use the new connection state.
+
+I RESULT: PASS / FAIL
+
+
+AUTOMATED CI GATE
+-----------------
+Expected before Phase F can be called CI COMPLETE:
+[ ] existing static regression checks PASS
+[ ] Phase F static checks PASS
+[ ] protocol decoder tests PASS
+[ ] notification capture tests PASS
+[ ] log filter tests PASS
+[ ] session capture/replay tests PASS
+[ ] manual RT950 GATT TX tests PASS
+[ ] GATT snapshot/compare tests PASS
+[ ] dotnet restore PASS
+[ ] Windows x64 self-contained publish PASS
+[ ] EXE SHA-256 generated
+[ ] artifact upload PASS
+
+PHASE F COMPLETION RULE
+-----------------------
+Do not call Phase F COMPLETE until the required real snapshot flow is functionally exercised. CI green alone is CI COMPLETE / HARDWARE-FUNCTIONAL TEST PENDING.
