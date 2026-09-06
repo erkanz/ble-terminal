@@ -17,11 +17,13 @@ public partial class MainWindow
         InitializeLogExplorerHooks();
         InitializeRt950TxDiagnostics();
         InitializeKissTcpBridge();
+        InitializeMultiDeviceCompare();
     }
 
     protected override void OnClosed(EventArgs e)
     {
         KissStreamDecoder.AnyFrameCompleted -= KissStreamDecoder_AnyFrameCompleted;
+        ShutdownMultiDeviceCompare();
         ShutdownKissTcpBridge();
         ShutdownRt950TxDiagnostics();
         ShutdownNotificationCaptureHooks();

@@ -1,0 +1,182 @@
+BLE SERIAL TERMINAL - PHASE H MULTI-DEVICE LIVE COMPARE TEST CHECKLIST
+=====================================================================
+Repository: https://github.com/erkanz/ble-terminal
+Phase: H - Multi-Device Live Compare
+Status: CI COMPLETE / TWO-DEVICE RUNTIME TEST PENDING
+Date: 2026-09-06
+Green PR CI: run 34037557327 / commit fa4d97af1dd0cab38a9569462111d5200271417a
+
+PURPOSE
+-------
+Run two or more BLE-UART/KISS device sessions side by side without sharing any
+connection-scoped GATT wrapper, CCCD state, KISS stream state, TX queue, counters,
+or packet identity between devices.
+
+NON-NEGOTIABLE ISOLATION RULES
+------------------------------
+[x] Each compare device owns its own BluetoothLEDevice instance.
+[x] Each compare device owns its own GattDeviceService wrapper.
+[x] Each compare device owns its own Write and Notify characteristic wrappers.
+[x] Each compare device owns its own GATT SemaphoreSlim.
+[x] Each compare device owns its own TX serialization gate.
+[x] Each compare device owns its own CCCD subscription state/subscription.
+[x] Each compare device owns its own KissStreamDecoder.
+[x] Each compare device owns its own RX/TX/KISS/AX25/APRS counters.
+[x] MainWindow single-device live GATT wrappers are never reused by compare sessions.
+[x] MainWindow NotificationCaptureHub is not used as a substitute for per-device compare RX.
+[x] Disconnect/reconnect creates a fresh connection generation and stale routes are rejected.
+[x] No Device A characteristic wrapper can be used for Device B TX by design.
+[x] Closing the compare window disposes all compare sessions.
+
+AUTOMATED / CI GATE
+-------------------
+[x] existing static regression PASS
+[x] Phase F static checks PASS
+[x] Phase G static checks PASS
+[x] Phase H isolation static checks PASS - 22 checks
+[x] protocol tests PASS - 40 checks
+[x] notification tests PASS - 15 checks
+[x] log filter tests PASS - 14 checks
+[x] session capture/replay tests PASS - 19 checks
+[x] manual RT950 GATT TX tests PASS - 13 checks
+[x] GATT snapshot tests PASS - 18 checks
+[x] KISS TCP bridge tests PASS - 25 checks
+[x] multi-device comparison model tests PASS - 15 checks
+[x] dotnet restore PASS
+[x] Windows x64 self-contained publish PASS
+[x] EXE + SHA256 generated
+[x] artifact upload PASS
+
+Green implementation build evidence:
+    run: 34037557327
+    artifact: 9990664978
+    EXE size: 78,078,258 bytes
+    EXE SHA256: f2b3e5c22035273647da9f5dd79be5dc32fa01d4dd61f302c48a210442133dc3
+
+A - WINDOW / SCAN
+-----------------
+1. Launch BLE Serial Terminal.
+2. Open View -> Multi-Device Live Compare...
+3. Confirm:
+   [ ] window opens without changing the main terminal BLE connection
+   [ ] Start scan is available
+   [ ] no compare BLE session exists until Connect selected is used
+4. Start scan.
+   [ ] nearby BLE devices appear with name/address/RSSI/last seen
+   [ ] filter works by device name and BLE address
+5. Stop scan.
+   [ ] watcher stops cleanly
+   [ ] existing compare sessions remain connected
+
+B - TWO INDEPENDENT CONNECTIONS
+-------------------------------
+Use two supported BLE-UART devices. Preferred first test:
+    Device A = RT-950 Pro
+    Device B = second RT-950 Pro or known NUS/HM-10-compatible device
+
+1. Connect Device A.
+   [ ] A reaches READY
+   [ ] A profile/service/write/notify/CCCD fields are correct
+2. Connect Device B.
+   [ ] B reaches READY independently
+   [ ] B profile/service/write/notify/CCCD fields are correct
+3. Confirm session rows have different SessionId-backed live state.
+4. Confirm the main terminal connection, if present, still works.
+
+C - RX ISOLATION
+----------------
+1. Generate KISS/APRS traffic only on Device A.
+2. Verify:
+   [ ] A notification/RX/KISS/AX25/APRS counters increase
+   [ ] B counters do not increase from A traffic
+   [ ] B last source/destination/summary do not change from A traffic
+3. Generate traffic only on Device B.
+4. Verify the reverse:
+   [ ] B counters increase
+   [ ] A does not consume B traffic
+5. Generate traffic on both devices repeatedly.
+   [ ] neither decoder corrupts the other device's fragmented KISS state
+
+D - TX ISOLATION
+----------------
+1. Select Device A row.
+2. Enter a known-safe KISS HEX frame and press Send to selected.
+3. Verify:
+   [ ] only Device A TX counter increases
+   [ ] Device A uses its own selected Auto Detect write characteristic
+   [ ] Device B TX counter does not change
+4. Select Device B and repeat.
+   [ ] only B TX state changes
+5. Rapidly alternate A/B sends.
+   [ ] no payload crosses to the other device
+   [ ] each session remains internally serialized
+
+IMPORTANT:
+A successful BLE GATT write proves host-to-device BLE delivery only. It does not by itself
+prove radio application-level acceptance or RF transmission.
+
+E - A/B COMPARISON
+------------------
+1. Select Device A in Compare A and Device B in Compare B.
+2. Refresh comparison.
+3. Verify fields include:
+   [ ] device name/address
+   [ ] connection state
+   [ ] profile
+   [ ] service/write/notify UUID
+   [ ] same-characteristic flag
+   [ ] CCCD readiness
+   [ ] notifications/RX/KISS/AX25/APRS/TX counters
+   [ ] last packet source/destination/path/type/summary
+   [ ] last error
+4. Equal values show '=' and different values show '≠'.
+
+F - DISCONNECT / RECONNECT ISOLATION
+------------------------------------
+1. Disconnect Device A while Device B remains READY.
+   [ ] A becomes DISCONNECTED
+   [ ] B remains READY and continues RX
+2. Reconnect Device A using a fresh compare connection.
+   [ ] A returns READY
+   [ ] stale A wrappers are not reused
+   [ ] B wrappers/session remain unchanged
+3. Power-cycle Device B.
+   [ ] B shows disconnect independently
+   [ ] A remains functional
+
+G - WINDOW / RESOURCE CLEANUP
+-----------------------------
+1. With two sessions connected, close Multi-Device Live Compare.
+2. Verify:
+   [ ] both compare CCCD subscriptions are disabled best-effort when possible
+   [ ] compare device/service wrappers are disposed
+   [ ] scan watcher is stopped
+   [ ] main terminal remains usable
+3. Reopen compare window.
+   [ ] no stale compare sessions are silently retained
+   [ ] new connections create fresh wrappers
+
+H - FOUR-SESSION BOUND
+----------------------
+If four BLE devices are available:
+1. Connect four compare sessions.
+   [ ] all four have independent rows/state
+2. Attempt a fifth session.
+   [ ] application blocks it with an explicit bounded-session warning
+   [ ] no partial fifth connection is left alive
+
+PHASE H COMPLETION GATE
+-----------------------
+Do not mark Phase H COMPLETE until:
+[x] Windows PR CI is fully green
+[ ] validated source is merged to main and main CI is green
+[ ] two real devices can be connected simultaneously
+[ ] A-only RX does not change B state
+[ ] B-only RX does not change A state
+[ ] TX selected for A never writes through B route and vice versa
+[ ] disconnect/reconnect of one device does not disturb the other
+[ ] main single-device terminal still works before/during/after compare window use
+[ ] compare window cleanup leaves no stale live wrappers/subscriptions
+[ ] ROADMAP.txt records final runtime evidence
+
+Until the real two-device test is complete, Phase H status remains HARDWARE TEST PENDING.

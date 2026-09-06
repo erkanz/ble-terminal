@@ -49,6 +49,10 @@ jobs:
         shell: pwsh
         run: python tests/PHASE_G_STATIC_CHECK.py
 
+      - name: Phase H multi-device isolation static checks
+        shell: pwsh
+        run: python tests/PHASE_H_STATIC_CHECK.py
+
       - name: Protocol decoder tests
         shell: pwsh
         run: dotnet run --project tests/ProtocolTests/ProtocolTests.csproj -c Release
@@ -76,6 +80,10 @@ jobs:
       - name: KISS TCP bridge tests
         shell: pwsh
         run: dotnet run --project tests/KissTcpBridgeTests/KissTcpBridgeTests.csproj -c Release
+
+      - name: Multi-device compare tests
+        shell: pwsh
+        run: dotnet run --project tests/MultiDeviceCompareTests/MultiDeviceCompareTests.csproj -c Release
 
       - name: Restore
         shell: pwsh
