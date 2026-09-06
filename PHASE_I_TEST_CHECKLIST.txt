@@ -4,7 +4,7 @@ Repository: https://github.com/erkanz/ble-terminal
 Phase: I - Production Hardening / Release
 Status: IN PROGRESS
 Date: 2026-09-06
-Branch: phase-i-production-hardening
+Branch: phase-i-production-hardening + startup hotfix
 
 PURPOSE
 -------
@@ -36,6 +36,7 @@ A - COMPILER / STATIC QUALITY GATE
 [ ] Phase H static PASS.
 [ ] Phase I static PASS.
 [ ] compiler warnings gate PASS with TreatWarningsAsErrors=true.
+[ ] published EXE startup smoke gate PASS.
 [ ] Protocol tests PASS.
 [ ] Notification tests PASS.
 [ ] Log Filter tests PASS.
@@ -174,6 +175,21 @@ Do not mark Phase I COMPLETE or create the final v* release until:
 [ ] ROADMAP.txt is updated with final main commit/run/artifact/SHA256.
 [ ] README limitations/support state is current.
 [ ] tagged GitHub Release contains BLESerialTerminal.exe and BLESerialTerminal.exe.sha256.
+
+M - STARTUP CRASH REGRESSION (2026-09-06)
+-----------------------------------------
+Observed on a real Windows machine after the first Phase I merge:
+[x] runtime.log captured a fatal startup exception.
+[x] failure identified as NullReferenceException in MainWindow.UpdateTxSendAvailability().
+[x] trigger identified: WriteTypeComboBox SelectionChanged fired during InitializeComponent().
+[x] root cause identified: SendButton/RoutingStatusTextBlock can be uncreated while XAML is still loading.
+[x] UpdateTxSendAvailability now guards named controls before dereference.
+[x] Phase I static test now requires the initialization guard.
+[x] workflow now launches the published EXE and fails if it exits during the startup smoke interval.
+[ ] hotfix PR Windows CI fully green.
+[ ] hotfix merged to main.
+[ ] authoritative main Windows startup-smoke build fully green.
+[ ] user confirms the resulting EXE opens normally on the machine that reproduced the crash.
 
 OPEN HARDWARE GATES FROM EARLIER PHASES
 ---------------------------------------
