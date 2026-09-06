@@ -25,11 +25,13 @@ internal sealed record LogEntry(
     string Characteristic,
     string Message,
     bool IsWarning,
-    bool IsError)
+    bool IsError,
+    byte[] Data)
 {
     public string TimeText => Timestamp.ToString("HH:mm:ss.fff");
     public string CategoryText => Category.ToString();
     public string LevelText => IsError ? "ERROR" : IsWarning ? "WARNING" : string.Empty;
+    public bool HasData => Data.Length > 0;
 }
 
 internal sealed class LogStore
@@ -57,7 +59,8 @@ internal sealed class LogStore
         string characteristic = "",
         bool isWarning = false,
         bool isError = false,
-        DateTime? timestamp = null)
+        DateTime? timestamp = null,
+        byte[]? data = null)
     {
         var entry = new LogEntry(
             Interlocked.Increment(ref _sequence),
@@ -68,7 +71,8 @@ internal sealed class LogStore
             string.IsNullOrWhiteSpace(characteristic) ? "-" : characteristic.Trim().ToUpperInvariant(),
             message ?? string.Empty,
             isWarning,
-            isError);
+            isError,
+            (data ?? Array.Empty<byte>()).ToArray());
 
         lock (_sync)
         {
