@@ -1,0 +1,264 @@
+BLE SERIAL TERMINAL - PHASE A HARDWARE QUALIFICATION
+====================================================
+Phase: A - v13 Hardware Qualification + Baseline Freeze
+Repository: https://github.com/erkanz/ble-terminal
+Status at creation: CI COMPLETE / HARDWARE TEST PENDING
+
+PURPOSE
+-------
+This procedure validates the current v13 BLE/GATT baseline on real hardware before
+Phase B (KISS / AX.25 / APRS Decoder) begins.
+
+The authoritative executable is the GitHub Actions win-x64 self-contained build.
+Do NOT qualify Phase A with an old locally-built EXE or historical ZIP package.
+
+
+1. GET THE TEST BUILD
+---------------------
+1) Open the repository:
+   https://github.com/erkanz/ble-terminal
+
+2) Open:
+   Actions -> Build Windows EXE
+
+3) Select the newest SUCCESS run on main.
+
+4) Download artifact:
+   BLESerialTerminal-win-x64
+
+5) Extract it.
+
+6) Confirm these files exist:
+   BLESerialTerminal.exe
+   BLESerialTerminal.exe.sha256
+
+7) Verify the EXE SHA-256 with PowerShell:
+
+   Get-FileHash .\BLESerialTerminal.exe -Algorithm SHA256
+
+8) Compare it with BLESerialTerminal.exe.sha256 from the same artifact.
+
+Do not mix an EXE from one Actions run with a checksum from another run.
+
+
+2. RT-950 SETTINGS
+------------------
+Before connecting:
+
+[ ] Bluetooth = ON
+[ ] TNC Type = KISS(BLE)
+[ ] Reporting APP = Both
+[ ] RT-950 is not simultaneously connected to another BLE application
+[ ] Windows Bluetooth adapter is enabled
+
+If Windows already has a stale/broken connection, disconnect the application first.
+Do not immediately remove the Windows pairing unless diagnostics show it is necessary.
+
+
+3. TEST A1 - AUTO DETECT / DATA CHANNEL READY
+---------------------------------------------
+1) Launch BLESerialTerminal.exe.
+2) Scan.
+3) Select walkie-talkie / RT-950.
+4) Connect with Auto Detect enabled.
+5) Do not open GATT Inspector yet.
+
+Expected log/state:
+
+[ ] Scan finds the RT-950
+[ ] Connect succeeds
+[ ] AUTO GATT appears
+[ ] profile=RADTEL_RT950_KISS
+[ ] service=FFE0
+[ ] write=FFE1
+[ ] notify=FFE1
+[ ] sameCharacteristic=true
+[ ] FFE1 PROPERTIES appears
+[ ] FFE1 VALUECHANGED HANDLER ATTACHED appears exactly once
+[ ] FFE1 CCCD WRITE START appears
+[ ] FFE1 CCCD WRITE RESULT=Success
+[ ] FFE1 NOTIFY ACTIVE appears only after Success
+[ ] RADTEL KISS READY appears
+
+FAIL CONDITIONS:
+- profile is wrong
+- FFE1 is not selected
+- CCCD fails
+- READY appears before CCCD Success
+- duplicate handler attachment occurs
+- connection drops immediately after discovery
+
+If A1 fails, export the full log before reconnecting.
+
+
+4. TEST A2 - RAW FFE1 RX / KISS REASSEMBLY
+-------------------------------------------
+Keep the same successful BLE connection from A1.
+
+1) Transmit a real APRS packet from another radio on the frequency being monitored by RT-950.
+2) Confirm the RT-950 itself receives/decodes it.
+3) Observe BLE Serial Terminal.
+
+Expected:
+
+[ ] RAW BLE NOTIFICATION appears
+[ ] UUID=FFE1
+[ ] LEN is present
+[ ] HEX is present
+[ ] raw notification is logged before any KISS RX interpretation
+[ ] if frame is split into multiple BLE notifications, one complete KISS stream/frame is reconstructed
+[ ] KISS RX shows SOURCE=FFE1
+[ ] KISS RX shows LEN
+[ ] KISS RX shows PORT/CMD
+[ ] KISS RX shows RAW HEX / UNESCAPED content
+
+Important:
+BLE notification boundaries are transport fragments. A 20-byte notification is NOT
+necessarily one KISS frame.
+
+FAIL CONDITIONS:
+- RT-950 decodes RF packet but no BLE raw notification arrives
+- raw notification arrives on unexpected characteristic with no explanation
+- bytes arrive but parser loses fragmented frame
+- raw bytes disappear because KISS parsing rejects them
+
+Export the log if any failure occurs.
+
+
+5. TEST A3 - GATT INSPECTOR CACHE REUSE
+---------------------------------------
+Only perform after A1 has produced a READY connection.
+
+1) Open GATT Inspector.
+2) Locate service FFE0.
+3) Locate characteristic FFE1.
+4) Refresh/inspect without disconnecting the main terminal.
+
+Expected:
+
+[ ] SERVICE FFE0 shows Source=AUTO-DETECT/REUSED
+[ ] FFE1 shows Source=AUTO-DETECT/REUSED
+[ ] FFE1 shows Reused=Yes
+[ ] AUTO TERMINAL SUBSCRIPTION PROTECTED service=FFE0 notify=FFE1 appears
+[ ] FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync appears
+[ ] FFE1 present: YES (from Auto Detect cache)
+[ ] no false FFE1 present:NO
+[ ] opening Inspector does not disable main terminal FFE1 notifications
+[ ] closing Inspector does not disable main terminal FFE1 notifications
+[ ] refreshing Inspector does not break main terminal RX
+
+Then transmit another APRS packet.
+
+[ ] raw FFE1 notification still arrives after Inspector use
+[ ] KISS stream still works
+
+FAIL CONDITIONS:
+- AccessDenied causes cached FFE1 to disappear
+- Inspector disposes the live Auto Detect service
+- main RX stops after Inspector closes
+- Inspector blindly re-enumerates cached FFE0 and breaks the working session
+
+
+6. TEST A4 - SUBSCRIPTION RECOVERY
+----------------------------------
+This test is conditional because the initial CCCD failure may not reproduce on every run.
+
+If main FFE1 CCCD fails while BLE remains connected:
+
+1) Open GATT Inspector.
+2) Select cached FFE1.
+3) Enable Notify.
+
+Expected:
+
+[ ] Inspector uses the cached FFE1 object
+[ ] real CCCD write is attempted
+[ ] Success is reported if device accepts it
+[ ] main state changes to RT950 KISS READY after successful recovery
+
+If main CCCD is already active:
+
+[ ] Inspector does NOT perform an unnecessary second CCCD enable write
+[ ] Inspector may attach its own local ValueChanged handler
+[ ] main subscription remains active
+
+If a CCCD failure cannot be reproduced naturally, mark this item NOT REPRODUCED rather
+than inventing a PASS result.
+
+
+7. TEST A5 - OTHER BLE UART REGRESSION
+--------------------------------------
+Perform with hardware available to you.
+
+NORDIC NUS / ESP32 BLE UART
+[ ] Auto Detect connects
+[ ] correct service/characteristics selected
+[ ] RX works
+[ ] TX works
+[ ] Enter sends
+[ ] LF default still works
+[ ] local echo default remains OFF
+
+HM-10 FFE0/FFE1
+[ ] Auto Detect connects
+[ ] FFE0/FFE1 selected
+[ ] RX works
+[ ] TX works
+[ ] device is NOT forced to RADTEL_RT950_KISS unless identity actually matches RT-950
+
+MANUAL CUSTOM UUID
+[ ] disable/use manual Custom UUID path
+[ ] connect using explicit UUIDs
+[ ] RX/TX works
+
+If a specific hardware type is not available, mark it NOT AVAILABLE rather than PASS.
+
+
+8. UI REGRESSION QUICK CHECK
+----------------------------
+[ ] dark mode works from View menu
+[ ] dark scrollbars remain dark
+[ ] terminal background color can be changed
+[ ] terminal foreground color can be changed
+[ ] File -> Export Log works
+[ ] About menu opens
+[ ] LF is default line ending
+[ ] Local echo is OFF by default
+[ ] Enter sends TX
+[ ] application icon displays correctly
+
+
+9. WHAT TO SEND BACK TO CHATGPT
+-------------------------------
+Best result package:
+
+A) If everything works:
+- state that A1/A2/A3 passed
+- state whether A4 was tested or NOT REPRODUCED
+- state which A5 devices were tested
+
+B) If anything fails:
+Export the log from File -> Export Log and upload the TXT file.
+Also state exactly which test step failed.
+
+Do not summarize the failure manually if the exported log is available; upload the log so
+the exact GATT/CCCD/raw notification sequence can be analyzed.
+
+
+10. PHASE A COMPLETION GATE
+---------------------------
+Phase A can be marked COMPLETE only when:
+
+[ ] current GitHub Actions build is green
+[ ] RT-950 A1 passes
+[ ] RT-950 A2 passes
+[ ] RT-950 A3 passes
+[ ] A4 is PASS or explicitly documented as NOT REPRODUCED / not required for baseline freeze
+[ ] available A5 regression hardware is documented accurately
+[ ] UI quick regression has no release-blocking defect
+[ ] RT950_TEST_CHECKLIST.txt is updated with real results
+[ ] ROADMAP.txt is updated with final Phase A status
+[ ] known-good commit and successful Actions run are recorded
+
+After that, the next phase is:
+PHASE B - KISS / AX.25 / APRS Decoder
