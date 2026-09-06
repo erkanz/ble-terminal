@@ -28,7 +28,7 @@ checks = {
     'multi-device window is closed from main shutdown': '_multiDeviceCompareWindow?.Close()' in multi,
     'nullable APRS position result has success postcondition': 'NotNullWhen(true)' in aprs,
     'session replay test no longer dereferences nullable decoder output directly': 'decoded[0].Ax25!' not in session_tests and 'decoded[0].Aprs!' not in session_tests,
-    'TX availability is safe during XAML construction': 'SendButton == null || WriteTypeComboBox == null || RoutingStatusTextBlock == null' in rt950_tx,
+    'TX availability is safe during XAML construction': all(x in rt950_tx for x in ['SendButton == null', 'WriteTypeComboBox == null', 'RoutingStatusTextBlock == null']),
     'workflow executes Phase I static gate': 'Phase I production hardening static checks' in workflow and 'tests/PHASE_I_STATIC_CHECK.py' in workflow,
     'workflow contains compiler warnings gate': 'Compiler warnings gate' in workflow and 'TreatWarningsAsErrors=true' in workflow,
     'workflow contains published EXE startup smoke gate': 'Published EXE startup smoke gate' in workflow and 'Start-Process $exe -PassThru' in workflow and 'HasExited' in workflow,
