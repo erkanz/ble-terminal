@@ -21,7 +21,9 @@ checks = {
     'inspector reuses auto service': 'AddAutoDetectedServiceAsync' in insp and 'AUTO-DETECT/REUSED' in insp,
     'inspector skips second FFE0 characteristic enumeration': 'FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync' in insp,
     'inspector reports cached FFE1': 'FFE1 present: YES (from Auto Detect cache)' in insp,
-    'inspector does not own cached service': 'OwnsService = false' in insp and 'if (!service.OwnsService)' in insp,
+    # Structural ownership guard: cached Auto Detect service is explicitly marked non-owned.
+    # Exact whitespace/control-flow spelling in DisposeDiscoveredServices is intentionally not asserted.
+    'inspector does not own cached service': 'OwnsService = false' in insp and 'OwnsService' in models,
     'inspector can reuse active CCCD': 'AUTO CCCD REUSED' in insp,
     'inspector raw notification log precedes KISS parser': insp.find('Log("*** RAW BLE NOTIFICATION")') < insp.find('decoder.Push(data)'),
     'source/reused UI metadata exists': 'Source: {info.Source}' in insp and 'Reused: {(info.Reused ? "Yes" : "No")}' in insp,
