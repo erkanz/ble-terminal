@@ -1,0 +1,135 @@
+BLE SERIAL TERMINAL - PHASE A RT-950 HARDWARE SESSION
+====================================================
+Date: 2026-09-06
+Phase: A - v13 Hardware Qualification + Baseline Freeze
+Result: PARTIAL PASS
+
+DEVICE / PROFILE
+----------------
+Device: walkie-talkie / RT-950 family
+BLE address observed: E4:66:E5:78:29:E2
+Detected profile: RADTEL_RT950_KISS
+Service: FFE0
+Write characteristic: FFE1
+Notify characteristic: FFE1
+Shared RX/TX characteristic: YES
+
+A1 - AUTO DETECT / DATA CHANNEL READY
+-------------------------------------
+PASS.
+
+Observed sequence:
+- AUTO GATT
+- profile=RADTEL_RT950_KISS
+- service=FFE0
+- write=FFE1
+- notify=FFE1
+- sameCharacteristic=true
+- FFE1 PROPERTIES
+- FFE1 VALUECHANGED HANDLER ATTACHED
+- FFE1 CCCD WRITE START value=Notify
+- FFE1 CCCD WRITE RESULT=Success statusCode=0 protocol=none
+- FFE1 NOTIFY ACTIVE
+- STATE BLE=CONNECTED
+- STATE GATT=DISCOVERED
+- STATE FFE1=FOUND
+- STATE FFE1_HANDLER=YES
+- STATE FFE1_CCCD=SUCCESS
+- STATE RT950_KISS=READY
+- RADTEL KISS READY
+
+A2 - RAW BLE RX / KISS REASSEMBLY
+---------------------------------
+PASS for valid real traffic.
+
+Observed real FFE1 BLE notifications contained fragmented KISS frames.
+
+Frame example 1 notification sizes:
+20 + 20 + 20 + 20 + 6 bytes
+
+The first notification began:
+C0 00 82 A0 82 A8 70 62 ...
+
+The final fragment ended:
+34 2E 33 30 56 C0
+
+Only after the trailing C0 arrived, the application emitted one complete KISS RX event:
+- SOURCE=FFE1
+- LEN=84
+- PORT/CMD=00
+- RAW HEX available
+- UNESCAPED available
+
+A second real frame was also fragmented across BLE notifications and reconstructed as:
+- SOURCE=FFE1
+- LEN=91
+- PORT/CMD=00
+
+This confirms that 20-byte BLE notification boundaries are being treated as transport
+fragments rather than individual KISS frames.
+
+Malformed/non-KISS input was not deliberately injected in this session.
+
+A3 - GATT INSPECTOR CACHE REUSE
+-------------------------------
+PASS for Inspector open/discovery/cache-reuse path.
+
+Observed:
+- AUTO TERMINAL SUBSCRIPTION PROTECTED service=FFE0 notify=FFE1
+- AUTO CACHE profile=RADTEL_RT950_KISS sameCharacteristic=true handlerAttached=True cccdEnabled=True
+- SERVICE FFE0 source is AUTO-DETECT/REUSED
+- USING EXISTING AUTO-DETECT GATT OBJECTS
+- FFE1 source is AUTO-DETECT/REUSED
+- FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync
+- FFE1 STILL AVAILABLE
+- FFE1 present: YES (from Auto Detect cache)
+- FF31 present: YES
+- FF32 present: NO
+
+No false FFE1 present:NO occurred.
+
+Still required:
+- explicit APRS RX after Inspector close
+- explicit APRS RX after Inspector refresh
+These will verify that the main FFE1 subscription remains active through Inspector lifecycle actions.
+
+A4 - SUBSCRIPTION RECOVERY
+--------------------------
+Main CCCD enable succeeded normally, so the failure-recovery path was NOT REPRODUCED.
+Do not fabricate a PASS for that path.
+
+The already-active subscription reuse path DID pass:
+AUTO NOTIFY REUSED uuid=FFE1 inspectorHandler=ATTACHED cccdWrite=SKIPPED existingCccdActive=true
+
+This proves Inspector did not perform an unnecessary second CCCD enable while the main
+FFE1 subscription was already active.
+
+A5 - OTHER BLE UART REGRESSION
+------------------------------
+Not covered by this RT-950 session.
+Still pending/documentation required for hardware that is available:
+- Nordic NUS / ESP32 BLE UART
+- HM-10 FFE0/FFE1
+- Manual Custom UUID mode
+
+CURRENT PHASE DECISION
+----------------------
+Do NOT mark Phase A COMPLETE yet.
+
+Current status:
+- A1: PASS
+- A2: PASS
+- A3: PARTIAL PASS; post-close/post-refresh RX pending
+- A4: active-subscription reuse PASS; failure path NOT REPRODUCED
+- A5: PENDING
+
+Next required hardware action:
+1) connect RT-950 and reach RADTEL KISS READY,
+2) open GATT Inspector,
+3) refresh Inspector,
+4) close Inspector,
+5) transmit another APRS packet,
+6) confirm RAW BLE NOTIFICATION and KISS RX still arrive,
+7) then run/document available generic BLE-UART regression hardware and UI quick checks.
+
+After those checks pass, update ROADMAP.txt and freeze Phase A as COMPLETE.
