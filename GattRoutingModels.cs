@@ -54,4 +54,5 @@ internal sealed record TxCommandRequest(
     bool WithResponse,
     byte[] Payload,
     ulong? BluetoothAddress,
-    DateTime? ConnectedAt);
+    DateTime? ConnectedAt,
+    int ChunkSize);
