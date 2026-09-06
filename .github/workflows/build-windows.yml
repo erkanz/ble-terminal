@@ -41,6 +41,10 @@ jobs:
         shell: pwsh
         run: python tests/STATIC_REGRESSION_CHECK.py
 
+      - name: Optional RT950 KISS module static checks
+        shell: pwsh
+        run: python tests/OPTIONAL_MODULES_STATIC_CHECK.py
+
       - name: Phase F GATT snapshot static checks
         shell: pwsh
         run: python tests/PHASE_F_STATIC_CHECK.py
@@ -73,9 +77,13 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/SessionTests/SessionTests.csproj -c Release
 
-      - name: Manual RT950 GATT TX tests
+      - name: Manual GATT TX tests
         shell: pwsh
         run: dotnet run --project tests/ManualTxTests/ManualTxTests.csproj -c Release
+
+      - name: Optional RT950 KISS feature module tests
+        shell: pwsh
+        run: dotnet run --project tests/FeatureModuleTests/FeatureModuleTests.csproj -c Release
 
       - name: GATT snapshot compare tests
         shell: pwsh

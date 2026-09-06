@@ -15,7 +15,8 @@ public partial class MainWindow
         KissStreamDecoder.AnyFrameCompleted += KissStreamDecoder_AnyFrameCompleted;
         InitializeNotificationCaptureHooks();
         InitializeLogExplorerHooks();
-        InitializeRt950TxDiagnostics();
+        InitializeGattRoutingAndCommandWorkspace();
+        InitializeOptionalFeatureModules();
         InitializeKissTcpBridge();
         InitializeMultiDeviceCompare();
     }
@@ -25,7 +26,8 @@ public partial class MainWindow
         KissStreamDecoder.AnyFrameCompleted -= KissStreamDecoder_AnyFrameCompleted;
         ShutdownMultiDeviceCompare();
         ShutdownKissTcpBridge();
-        ShutdownRt950TxDiagnostics();
+        ShutdownOptionalFeatureModules();
+        ShutdownGattRoutingAndCommandWorkspace();
         ShutdownNotificationCaptureHooks();
         ShutdownLogExplorerHooks();
         try
@@ -59,9 +61,9 @@ public partial class MainWindow
 
     private void KissStreamDecoder_AnyFrameCompleted(KissStreamDecoder decoder, KissFrame frame)
     {
-        // Inspector and future transports may own independent KISS decoders. Only consume
-        // frames produced by the main terminal connection's decoder here.
-        if (!ReferenceEquals(decoder, _autoKissDecoder))
+        // Main-window protocol interpretation is opt-in and belongs to the independent
+        // KISS module. RT950 detection/transport does not enable this decoder.
+        if (!ReferenceEquals(decoder, _notificationMonitorKissDecoder) || !IsKissDecodedDisplayEnabled)
             return;
 
         string sourceCharacteristic = _notifyCharacteristic != null
@@ -69,10 +71,8 @@ public partial class MainWindow
             : "UNKNOWN";
         DateTime timestamp = DateTime.Now;
 
-        // Push() is called while the main RX dispatcher callback is still logging KISS.
-        // Queue protocol decode so RAW BLE and KISS processing remains ordered, but keep
-        // AX.25/APRS decode text out of the serial terminal. The dedicated decoded window
-        // and structured diagnostic log own higher-layer decode presentation.
+        // Raw notification capture is recorded before the KISS decoder is fed. Queue
+        // upper-layer work so decode never hides or delays the lower-level BLE evidence.
         Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame(timestamp, sourceCharacteristic, frame));
     }
 

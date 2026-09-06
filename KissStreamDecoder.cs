@@ -13,8 +13,15 @@ internal sealed class KissStreamDecoder
 
     internal static event Action<KissStreamDecoder, KissFrame>? AnyFrameCompleted;
 
+    // Optional policy is used only to feature-gate specific live decoders owned by MainWindow.
+    // Independent explicit consumers (session replay, bridge, inspector, tests) remain enabled.
+    internal static Func<KissStreamDecoder, bool>? ProcessingPolicy { get; set; }
+
     public IEnumerable<KissFrame> Push(ReadOnlySpan<byte> chunk)
     {
+        if (ProcessingPolicy != null && !ProcessingPolicy(this))
+            return Array.Empty<KissFrame>();
+
         var completed = new List<KissFrame>();
         foreach (byte value in chunk)
         {
@@ -30,8 +37,6 @@ internal sealed class KissStreamDecoder
                     AnyFrameCompleted?.Invoke(this, frame);
                 }
 
-                // A FEND closes the current frame and simultaneously starts the next one.
-                // Repeated FEND bytes therefore do not produce empty frames.
                 _raw.Clear();
                 _raw.Add(Fend);
                 _inFrame = true;
@@ -44,7 +49,6 @@ internal sealed class KissStreamDecoder
             _raw.Add(value);
             if (_raw.Count > MaxFrameBytes)
             {
-                // Drop an unterminated runaway frame without affecting future FEND sync.
                 _raw.Clear();
                 _inFrame = false;
             }
@@ -95,7 +99,6 @@ internal sealed class KissStreamDecoder
             }
 
             warnings.Add($"Unknown KISS escape sequence DB {next:X2}");
-            // Preserve the original bytes so malformed traffic is never hidden.
             result.Add(Fesc);
             result.Add(next);
             i++;
@@ -121,9 +124,8 @@ internal sealed record KissFrame(byte[] Raw, byte[] Payload, IReadOnlyList<strin
         {
             if (Payload.Length <= 1)
                 return Array.Empty<byte>();
-
             byte[] data = new byte[Payload.Length - 1];
-            System.Buffer.BlockCopy(Payload, 1, data, 0, data.Length);
+            Buffer.BlockCopy(Payload, 1, data, 0, data.Length);
             return data;
         }
     }
