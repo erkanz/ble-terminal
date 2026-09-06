@@ -16,6 +16,7 @@
                 <MenuItem x:Name="DarkModeMenuItem" Header="Dark mode" IsCheckable="True" Click="DarkModeMenuItem_Click"/>
                 <Separator/>
                 <MenuItem Header="Decoded KISS / AX.25 / APRS packets..." Click="DecodedPacketsMenuItem_Click"/>
+                <MenuItem Header="BLE Notification Monitor..." Click="NotificationMonitorMenuItem_Click"/>
                 <Separator/>
                 <MenuItem Header="Serial output background..." Click="TerminalBackgroundMenuItem_Click"/>
                 <MenuItem Header="Serial output text color..." Click="TerminalForegroundMenuItem_Click"/>
