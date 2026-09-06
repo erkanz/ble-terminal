@@ -26,6 +26,8 @@ checks = {
     'KISS AX25 APRS counters are per session': all(x in session for x in ['_kissFrames', '_ax25Frames', '_aprsPackets', '_notifications', '_rxBytes', '_txBytes']),
     'maximum live compare session bound exists': 'private const int MaxSessions = 4;' in window,
     'new device gets a new independent session': 'new MultiDeviceSession(item.Address, item.Name)' in window,
+    'disconnected compare session can reconnect with fresh session context': 'state is "DISCONNECTED" or "ERROR"' in window and 'RECONNECT REQUEST' in window and 'await existing.ConnectAsync()' in window,
+    'main terminal address cannot be double-owned by compare session': '_addressReservedByMain?.Invoke(item.Address) == true' in window and '_connectedAddress.HasValue && _connectedAddress.Value == address' in main,
     'window shutdown disposes every independent session': 'await session.DisposeAsync()' in window and '_sessionsById.Clear()' in window,
     'comparison engine is snapshot based': 'MultiDeviceComparisonEngine.Compare(a.Snapshot, b.Snapshot)' in window and 'MultiDeviceSessionSnapshot' in models,
     'View menu integration exists': 'Multi-Device Live Compare...' in main and 'InitializeMultiDeviceCompare()' in protocol,
