@@ -23,6 +23,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Bootstrap imported v13 source tree
+        id: bootstrap
+        shell: pwsh
+        run: |
+          $parts = @(Get-ChildItem -Path bootstrap -Filter 'source_remaining.zip.b64.*' -ErrorAction SilentlyContinue | Sort-Object Name)
+          if ($parts.Count -gt 0) {
+            $b64 = ($parts | ForEach-Object { (Get-Content -Raw $_.FullName).Trim() }) -join ''
+            $zip = Join-Path $PWD 'bootstrap/source_remaining.zip'
+            [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
+            Expand-Archive -Path $zip -DestinationPath $PWD -Force
+            Remove-Item $zip -Force
+            "materialized=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "Imported v13 source tree materialized from bootstrap archive."
+          }
+          else {
+            "materialized=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
@@ -80,6 +98,24 @@ jobs:
             dist/win-x64/BLESerialTerminal.exe.sha256
           if-no-files-found: error
           retention-days: 90
+
+      - name: Materialize imported source files into main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.bootstrap.outputs.materialized == 'true'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add App.xaml MainWindow.xaml MainWindow.xaml.cs GattInspectorWindow.xaml GattInspectorWindow.xaml.cs `
+            SELF_CONTAINED_BUILD.txt BUILD_UBUNTU_COMMANDS.txt SCROLLBAR_DARK_FIX.txt GATT_INSPECTOR_NOTES.txt `
+            V12_UI_MENU_CHANGES.txt V13_RT950_GATT_CACHE_FIX.txt RT950_TEST_CHECKLIST.txt
+          git rm -f bootstrap/source_remaining.zip.b64.*
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "No source materialization changes to commit."
+            exit 0
+          }
+          git commit -m "Materialize v13 BLE Serial Terminal source tree"
+          git push origin HEAD:main
 
       - name: Publish tagged build to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
