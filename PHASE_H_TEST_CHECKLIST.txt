@@ -2,8 +2,9 @@ BLE SERIAL TERMINAL - PHASE H MULTI-DEVICE LIVE COMPARE TEST CHECKLIST
 =====================================================================
 Repository: https://github.com/erkanz/ble-terminal
 Phase: H - Multi-Device Live Compare
-Status: CODE COMPLETE / CI VALIDATION IN PROGRESS / TWO-DEVICE RUNTIME TEST PENDING
+Status: CI COMPLETE / TWO-DEVICE RUNTIME TEST PENDING
 Date: 2026-09-06
+Green PR CI: run 34037557327 / commit fa4d97af1dd0cab38a9569462111d5200271417a
 
 PURPOSE
 -------
@@ -13,39 +14,44 @@ or packet identity between devices.
 
 NON-NEGOTIABLE ISOLATION RULES
 ------------------------------
-[ ] Each compare device owns its own BluetoothLEDevice instance.
-[ ] Each compare device owns its own GattDeviceService wrapper.
-[ ] Each compare device owns its own Write and Notify characteristic wrappers.
-[ ] Each compare device owns its own GATT SemaphoreSlim.
-[ ] Each compare device owns its own TX serialization gate.
-[ ] Each compare device owns its own CCCD subscription.
-[ ] Each compare device owns its own KissStreamDecoder.
-[ ] Each compare device owns its own RX/TX/KISS/AX25/APRS counters.
-[ ] MainWindow single-device AutoDetectedGattContext is never reused by compare sessions.
-[ ] MainWindow NotificationCaptureHub is not used as a substitute for per-device compare RX.
-[ ] Disconnect/reconnect creates a fresh connection generation and stale routes are rejected.
-[ ] No Device A characteristic wrapper can be used for Device B TX.
-[ ] Closing the compare window disposes all compare sessions.
+[x] Each compare device owns its own BluetoothLEDevice instance.
+[x] Each compare device owns its own GattDeviceService wrapper.
+[x] Each compare device owns its own Write and Notify characteristic wrappers.
+[x] Each compare device owns its own GATT SemaphoreSlim.
+[x] Each compare device owns its own TX serialization gate.
+[x] Each compare device owns its own CCCD subscription state/subscription.
+[x] Each compare device owns its own KissStreamDecoder.
+[x] Each compare device owns its own RX/TX/KISS/AX25/APRS counters.
+[x] MainWindow single-device live GATT wrappers are never reused by compare sessions.
+[x] MainWindow NotificationCaptureHub is not used as a substitute for per-device compare RX.
+[x] Disconnect/reconnect creates a fresh connection generation and stale routes are rejected.
+[x] No Device A characteristic wrapper can be used for Device B TX by design.
+[x] Closing the compare window disposes all compare sessions.
 
 AUTOMATED / CI GATE
 -------------------
-Expected checks:
-[ ] existing static regression PASS
-[ ] Phase F static checks PASS
-[ ] Phase G static checks PASS
-[ ] Phase H isolation static checks PASS
-[ ] protocol tests PASS
-[ ] notification tests PASS
-[ ] log filter tests PASS
-[ ] session capture/replay tests PASS
-[ ] manual RT950 GATT TX tests PASS
-[ ] GATT snapshot tests PASS
-[ ] KISS TCP bridge tests PASS
-[ ] multi-device comparison model tests PASS
-[ ] dotnet restore PASS
-[ ] Windows x64 self-contained publish PASS
-[ ] EXE + SHA256 generated
-[ ] artifact upload PASS
+[x] existing static regression PASS
+[x] Phase F static checks PASS
+[x] Phase G static checks PASS
+[x] Phase H isolation static checks PASS - 22 checks
+[x] protocol tests PASS - 40 checks
+[x] notification tests PASS - 15 checks
+[x] log filter tests PASS - 14 checks
+[x] session capture/replay tests PASS - 19 checks
+[x] manual RT950 GATT TX tests PASS - 13 checks
+[x] GATT snapshot tests PASS - 18 checks
+[x] KISS TCP bridge tests PASS - 25 checks
+[x] multi-device comparison model tests PASS - 15 checks
+[x] dotnet restore PASS
+[x] Windows x64 self-contained publish PASS
+[x] EXE + SHA256 generated
+[x] artifact upload PASS
+
+Green implementation build evidence:
+    run: 34037557327
+    artifact: 9990664978
+    EXE size: 78,078,258 bytes
+    EXE SHA256: f2b3e5c22035273647da9f5dd79be5dc32fa01d4dd61f302c48a210442133dc3
 
 A - WINDOW / SCAN
 -----------------
@@ -162,7 +168,8 @@ If four BLE devices are available:
 PHASE H COMPLETION GATE
 -----------------------
 Do not mark Phase H COMPLETE until:
-[ ] Windows CI is fully green
+[x] Windows PR CI is fully green
+[ ] validated source is merged to main and main CI is green
 [ ] two real devices can be connected simultaneously
 [ ] A-only RX does not change B state
 [ ] B-only RX does not change A state
@@ -170,6 +177,6 @@ Do not mark Phase H COMPLETE until:
 [ ] disconnect/reconnect of one device does not disturb the other
 [ ] main single-device terminal still works before/during/after compare window use
 [ ] compare window cleanup leaves no stale live wrappers/subscriptions
-[ ] ROADMAP.txt records final CI and runtime evidence
+[ ] ROADMAP.txt records final runtime evidence
 
 Until the real two-device test is complete, Phase H status remains HARDWARE TEST PENDING.
