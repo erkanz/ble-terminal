@@ -141,7 +141,7 @@ internal static class Ax25Decoder
 
         if ((control & 0x03) == 0x01)
         {
-            return (control >> 2) & 0x03 switch
+            return (((control >> 2) & 0x03)) switch
             {
                 0 => "RR",
                 1 => "RNR",
@@ -151,7 +151,7 @@ internal static class Ax25Decoder
             };
         }
 
-        return control & 0xEF switch
+        return (control & 0xEF) switch
         {
             0x03 => "UI",
             0x2F => "SABM",
