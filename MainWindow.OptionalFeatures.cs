@@ -262,6 +262,54 @@ public partial class MainWindow
         Interlocked.Exchange(ref _rt950UnlockInProgress, 0);
     }
 
+    private bool ValidateRt950UnlockCommandSource(string source)
+    {
+        const string prefix = "COMMAND:";
+        if (!source.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        string commandId = source[prefix.Length..];
+        CommandRowData? row = _commandRows.FirstOrDefault(r => string.Equals(r.Id, commandId, StringComparison.Ordinal));
+        if (row == null)
+        {
+            AppendSystemLine("WRITE START RESULT=REJECTED");
+            AppendSystemLine($"COMMAND_ID={commandId}");
+            AppendSystemLine("REASON=COMMAND_NOT_FOUND");
+            return false;
+        }
+
+        byte[] payload;
+        try
+        {
+            payload = TxPayloadBuilder.Build(row.Command, ResolveHexMode(row), ResolveLineEnding(row));
+        }
+        catch (Exception ex)
+        {
+            AppendSystemLine("WRITE START RESULT=REJECTED");
+            AppendSystemLine($"COMMAND_ID={row.Id}");
+            AppendSystemLine($"REASON=INVALID_COMMAND_DATA {ex.Message}");
+            return false;
+        }
+
+        if (payload.Length == 0)
+        {
+            AppendSystemLine("WRITE START RESULT=REJECTED");
+            AppendSystemLine($"COMMAND_ID={row.Id}");
+            AppendSystemLine("REASON=EMPTY_COMMAND_DATA");
+            return false;
+        }
+
+        if (!Rt950Protocol.IsUnlockFrame(payload))
+        {
+            AppendSystemLine("WRITE START RESULT=REJECTED");
+            AppendSystemLine($"COMMAND_ID={row.Id}");
+            AppendSystemLine("REASON=RT950_UNLOCK_COMMAND_DATA_MISMATCH");
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task QueueRt950UnlockAsync(string source)
     {
         if (!_optionalFeatureSettings.Rt950ToolsEnabled)
@@ -270,6 +318,8 @@ public partial class MainWindow
             AppendSystemLine("REASON=RT950_TOOLS_DISABLED");
             return;
         }
+        if (!ValidateRt950UnlockCommandSource(source))
+            return;
         if (IsRt950DataPathReady)
         {
             AppendSystemLine("RT950 BLE DATA PATH READY");
