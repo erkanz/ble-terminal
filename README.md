@@ -4,6 +4,20 @@ Native Windows BLE/GATT serial terminal and diagnostic tool built with .NET 8 / 
 
 This repository is the **canonical source and build location** for the project.
 
+## Project status
+
+Current baseline: **v13 RT-950 GATT Cache / FFE1 Notify Fix**
+
+Current roadmap phase: **Phase A — v13 Hardware Qualification + Baseline Freeze**
+
+Automated Windows CI is green; real RT-950 hardware qualification is the remaining gate before Phase B begins.
+
+Project continuity and phase rules are maintained in:
+
+- `ROADMAP.txt`
+- `PHASE_A_HARDWARE_QUALIFICATION.txt`
+- `RT950_TEST_CHECKLIST.txt`
+
 ## Current baseline
 
 - Auto Detect BLE-UART
@@ -54,6 +68,19 @@ The EXE is:
 
 For tagged versions (`v*`), the same EXE and checksum are automatically attached to a GitHub Release.
 
+## Phase A hardware qualification
+
+For the current baseline, test the EXE downloaded from the newest successful `main` GitHub Actions run.
+
+Follow:
+
+```text
+PHASE_A_HARDWARE_QUALIFICATION.txt
+RT950_TEST_CHECKLIST.txt
+```
+
+Do not qualify Phase A with an old local ZIP/build. A green CI build is not considered proof of BLE/GATT hardware behavior; the RT-950 FFE0/FFE1 runtime checks must also pass before Phase A is marked complete.
+
 ## Local Windows publish
 
 With .NET 8 SDK installed:
@@ -89,8 +116,9 @@ Expected data-channel sequence:
 FFE1 FOUND
 FFE1 VALUECHANGED HANDLER ATTACHED
 FFE1 CCCD WRITE RESULT=Success
+FFE1 NOTIFY ACTIVE
 RADTEL KISS READY
 RAW BLE NOTIFICATION
 ```
 
-See `RT950_TEST_CHECKLIST.txt` and `V13_RT950_GATT_CACHE_FIX.txt` for current diagnostics and regression expectations.
+See `RT950_TEST_CHECKLIST.txt`, `PHASE_A_HARDWARE_QUALIFICATION.txt`, and `V13_RT950_GATT_CACHE_FIX.txt` for current diagnostics and regression expectations.
