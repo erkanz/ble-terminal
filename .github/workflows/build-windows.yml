@@ -41,6 +41,10 @@ jobs:
         shell: pwsh
         run: python tests/STATIC_REGRESSION_CHECK.py
 
+      - name: Protocol decoder tests
+        shell: pwsh
+        run: dotnet run --project tests/ProtocolTests/ProtocolTests.csproj -c Release
+
       - name: Restore
         shell: pwsh
         run: dotnet restore BLESerialTerminal.csproj -r win-x64
