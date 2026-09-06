@@ -1,256 +1,172 @@
 # BLE Serial Terminal
 
-Native Windows BLE/GATT serial terminal, GATT diagnostic tool, KISS / AX.25 / APRS analyzer, session replay utility, GATT snapshot comparer, and local KISS TCP bridge built with .NET 8 / WPF.
-
-This repository is the **canonical source and build location** for the project.
+Native Windows BLE/GATT serial terminal and diagnostic suite built with .NET 8 / WPF. The repository is the canonical source and GitHub Actions on Windows is the authoritative build path.
 
 ## Project status
 
-Current hardware-qualified BLE baseline: **v13 RT-950 GATT Cache / FFE1 Notify Fix**.
+Hardware-qualified BLE baseline: **v13 RT-950 GATT Cache / FFE1 Notify Fix**.
 
 - **Phase A** — RT-950 hardware qualification: COMPLETE
-- **Phase B** — KISS / AX.25 / APRS decoder: CI COMPLETE, final real-hardware decoded-window validation pending
-- **Phase C** — BLE Notification Monitor: CI COMPLETE, hardware/functional validation pending
+- **Phase B** — KISS / AX.25 / APRS decoder: CI COMPLETE, real-hardware decoded-window validation pending
+- **Phase C** — Notification Monitor: CI COMPLETE, hardware validation pending
 - **Phase D** — Log Filters / Search: CI COMPLETE, runtime validation pending
-- **Phase E** — Session Capture / Offline Replay: CI COMPLETE, real RT-950 capture/replay validation pending
-- **Phase F** — GATT Snapshot / Compare: CI COMPLETE, real snapshot/compare validation pending
-- **Phase G** — KISS TCP Bridge: implementation complete, CI/external-client hardware validation in progress
-- **RT-950 Manual GATT TX diagnostics** — implemented for direct FFE1 vs FF31 host-to-radio testing; real RT-950 TX/response validation pending
+- **Phase E** — Session Capture / Offline Replay: CI COMPLETE, real RT-950 replay validation pending
+- **Phase F** — GATT Snapshot / Compare: CI COMPLETE, real snapshot validation pending
+- **Phase G** — KISS TCP Bridge: CI COMPLETE on `main`, real RT-950/external-client validation pending
+- **Phase H** — Multi-Device Live Compare: CI COMPLETE on PR, real two-device isolation test pending
+- **RT-950 Manual GATT TX diagnostics** — CI COMPLETE, real FF31/FFE1 radio-side validation pending
 
-Project continuity and test rules are maintained in:
-
-- `ROADMAP.txt`
-- `RT950_TEST_CHECKLIST.txt`
-- `RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt`
-- `PHASE_B_TEST_CHECKLIST.txt`
-- `PHASE_C_TEST_CHECKLIST.txt`
-- `PHASE_D_TEST_CHECKLIST.txt`
-- `PHASE_F_TEST_CHECKLIST.txt`
-- `PHASE_G_TEST_CHECKLIST.txt`
+See `ROADMAP.txt` for the exact handoff state, build evidence and non-negotiable ownership rules.
 
 ## BLE / GATT
 
-- Auto Detect BLE-UART
-  - Nordic UART Service (NUS)
-  - HM-10 / FFE0-FFE1
-  - generic UART-style GATT profiles
-- Radtel RT-950 Pro FFE0/FFE1 KISS profile support
-- connection-scoped cached Auto Detect GATT objects to avoid RT-950 second-FFE0-enumeration / false `AccessDenied` regressions
-- result-bearing CCCD writes with status/protocol-error diagnostics
-- raw BLE notification logging before protocol parsing
-- shared GATT operation serialization between main terminal and GATT Inspector
-- GATT Inspector with services, characteristics, descriptors, Read/Write, Notify/Indicate and cache/source/ownership metadata
+Supported Auto Detect profiles include:
 
-### RT-950 manual GATT routing
+- Nordic UART Service (NUS)
+- HM-10 / FFE0-FFE1
+- generic BLE-UART-style Write + Notify/Indicate pairs
+- Radtel RT-950 Pro FFE0 / shared FFE1 KISS profile
 
-After the selected service has been discovered, the main terminal exposes live routing controls:
+The RT-950 path keeps connection-scoped GATT wrappers, attaches `ValueChanged` before enabling CCCD, uses result-bearing CCCD writes, and retains the selected service/characteristic list so the GATT Inspector can reuse the qualified live objects instead of performing a second FFE0 enumeration.
 
-- **Service** — current retained service wrapper; for RT-950 this is FFE0
-- **Notify characteristic** — notification/indication-capable characteristics from the retained service
-- **Write characteristic** — characteristics from the retained service, including FFE1 and FF31 when actually exposed by the radio
-- **Write type** — With Response / Without Response
+Main terminal and Inspector GATT operations are serialized through the shared main GATT gate. Reconnects create fresh wrappers; stale connection-scoped objects must not be reused.
 
-The existing Auto Detect profile and v13 ownership/cache model remain intact. Selecting FF31 as the TX characteristic changes the active diagnostic TX route only; it does not disable the existing FFE1 notification subscription.
+## RT-950 manual GATT TX diagnostics
 
-The application logs the actual characteristic property flags reported by Windows for every retained service characteristic. FF31 is **not assumed to be writable**. If the selected write type is unsupported by the real characteristic properties, Send is disabled or the attempted operation is rejected with an explicit diagnostic.
-
-Two routing presets are provided:
+The main terminal can temporarily route manual diagnostic TX to characteristics exposed by the retained service, including FFE1 and FF31 when the radio actually reports them.
 
 - **RT950 OEM TEST** → FFE0 / Notify FFE1 / Write FF31 / With Response / HEX / NONE
 - **RT950 FFE1 TEST** → FFE0 / Notify FFE1 / Write FFE1 / With Response / HEX / NONE
 
-Presets change settings only and never transmit automatically.
+Presets only change settings; they never auto-send. Actual characteristic properties control whether the selected write type is permitted.
 
-### Detailed write diagnostics
+The TX workbench provides 1-5 persistent command rows, serialized writes, exact HEX + NONE payload handling, route/payload freezing per queued request, and detailed result-bearing GATT diagnostics. A successful GATT write proves host-to-radio BLE delivery only; it does not prove OEM-command acceptance or RF transmission.
 
-Each manual write reports the real route and wire bytes before the WinRT GATT result is interpreted. Example:
-
-```text
-*** RAW BLE WRITE
-*** COMMAND_SLOT=1
-*** SERVICE=FFE0
-*** UUID=FF31
-*** TYPE=WITH_RESPONSE
-*** LEN=14
-*** HEX=50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
-*** WRITE START RESULT=ACCEPTED
-```
-
-For a result-bearing write the application reports the real `GattWriteResult` status, numeric status code and ATT protocol error when available. `WRITE START RESULT=ACCEPTED` means that Windows accepted creation of the asynchronous GATT write operation; it does **not** mean the radio transmitted RF or accepted an OEM command at its application layer.
-
-For Without Response, `WRITE SUBMITTED NO_RESPONSE` is logged as a separate diagnostic; any result Windows still provides is also retained.
-
-When FFE1 receives the single byte `06`, the terminal additionally prints:
-
-```text
-*** RT950 OEM ACK RECEIVED: 06
-```
-
-Raw HEX remains authoritative and visible.
-
-## Multi-command TX workbench
-
-The TX area is a bounded, collapsible/scrollable command workbench so the RX terminal remains the dominant part of the window.
-
-- 1 to 5 independent command rows
-- each row has an editable label, independent payload field and independent Send button
-- **Settings → Number of TX command rows → 1..5** changes visible rows dynamically
-- default visible row count is 1
-- labels, contents and row count persist in `%LOCALAPPDATA%\BLESerialTerminal\tx-command-settings.json`
-- hidden rows retain their saved contents
-- Send never clears the command input
-- rapid Send 1 / Send 2 / ... requests are queued and executed sequentially
-- each request captures its own payload and route so payloads are not merged
-- every runtime write includes `COMMAND_SLOT=N`
-
-**Load RT950 Test Commands** explicitly loads an OEM test set; it never transmits automatically:
-
-```text
-Command 1 label: OEM Handshake
-Command 1: 50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
-
-Command 2 label: Model Query
-Command 2: 4D
-```
-
-## TX payload rules
-
-TX modes remain ASCII and HEX. Line endings remain:
-
-- NONE
-- CR
-- LF
-- CRLF
-
-LF remains the normal default. RT-950 test presets explicitly select NONE.
-
-HEX accepts both forms:
-
-```text
-01 A0 FF
-01A0FF
-```
-
-With HEX + NONE, no byte is appended. For the OEM handshake the wire payload is exactly 14 bytes:
-
-```text
-50 52 4F 47 52 41 4D 42 54 39 30 30 30 55
-```
-
-Invalid HEX is rejected rather than silently altered.
+Checklist: `RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt`
 
 ## KISS / AX.25 / APRS
 
-The layered protocol path remains:
+The layered decoder remains additive:
 
 ```text
-RAW BLE notification → KISS stream reassembly → AX.25 → APRS
+RAW BLE notification -> KISS stream reassembly -> AX.25 -> APRS
 ```
 
-Capabilities include fragmented KISS reassembly, multiple KISS frames per notification, FEND/FESC handling, malformed-escape visibility, AX.25 source/destination/path/control/PID decoding, and APRS position/message/ACK/status/object/item/telemetry/weather/Mic-E/third-party categorization with raw-information retention.
+Capabilities include fragmented KISS reassembly, repeated FEND handling, FESC/TFEND/TFESC, malformed-escape visibility, AX.25 source/destination/path/control/PID decoding and APRS position/message/ACK/status/object/item/telemetry/weather/Mic-E/third-party handling.
 
-### APRS decode presentation
-
-Higher-layer AX.25/APRS decode summaries are **not injected into the serial output area**. Open:
-
-**View → Decoded KISS / AX.25 / APRS packets...**
-
-The dedicated packet window shows timestamp, BLE characteristic, KISS port/command, AX.25 source/destination/path, type, summary, raw/unescaped KISS HEX, AX.25 fields, original APRS information, decoded APRS fields and warnings. Structured diagnostic logging still records AX.25/APRS events for filters/session capture.
+Higher-level decode does not replace raw evidence. Open **View → Decoded KISS / AX.25 / APRS packets...** for the dedicated packet view; parsed APRS text is not injected into the normal serial terminal output.
 
 ## BLE Notification Monitor
 
-Open **View → BLE Notification Monitor...** for an independent, bounded notification capture path with sequence, timestamp, device, service/characteristic UUID, source/reused metadata, delivery mode, length, HEX, ASCII-safe rendering, KISS frame count, total counters and per-characteristic counters.
+Open **View → BLE Notification Monitor...** for bounded notification capture with sequence, timestamp, device, service/characteristic, delivery metadata, length, HEX, ASCII-safe rendering, KISS frame count and per-characteristic counters.
 
-Pause affects only display updates; capture continues. The monitor does not create a competing FFE1 subscription for the main terminal path.
+Pause affects display only; capture continues. The main qualified FFE1 path is observed without creating a competing CCCD subscription.
 
 ## Diagnostic Log Filters / Search
 
 Open **View → Diagnostic Log Filters / Search...**.
 
-The bounded structured log supports `CONNECTION`, `DISCOVERY`, `GATT`, `CCCD`, `RX_RAW`, `TX_RAW`, `KISS`, `AX25`, `APRS`, `INSPECTOR`, `WARNING` and `ERROR`, with text/category/device/characteristic/direction filters, errors/warnings-only mode, previous/next navigation, full/filtered export and session metadata.
+The bounded structured log supports categories such as `CONNECTION`, `DISCOVERY`, `GATT`, `CCCD`, `RX_RAW`, `TX_RAW`, `KISS`, `AX25`, `APRS`, `INSPECTOR`, `WARNING` and `ERROR`, with text/category/device/characteristic/direction filtering, navigation and full/filtered export.
 
-Raw RX/TX entries carry binary payload bytes in addition to formatted text so later session capture/replay does not depend only on rendered terminal strings.
+Raw RX/TX entries retain binary payload bytes in addition to formatted text.
 
 ## Session Capture / Offline Replay
 
 Open **View → Session Capture / Offline Replay...**.
 
-The application can record a versioned `.blsession.json` session containing structured events, binary RX/TX data, device/profile metadata and relevant GATT mapping. Offline replay feeds captured RX_RAW events back through independent per-characteristic KISS state and the normal AX.25/APRS decoders. Controls include Play, Pause, Step, Reset and replay speed.
-
-Replay never transmits captured TX bytes to a live BLE device.
+Versioned `.blsession.json` captures structured events, binary RX/TX bytes, device/profile metadata and relevant GATT mapping. Offline replay feeds captured RX_RAW through independent KISS state and the normal AX.25/APRS decoders. Replay never transmits captured TX bytes to BLE.
 
 ## GATT Snapshot / Compare
 
-The GATT Inspector can open the **Snapshot / Compare** workflow. A snapshot records device/session metadata, services, characteristics, descriptors, normalized UUIDs, characteristic properties, discovery/access status, cached/reused/ownership metadata, Auto Detect baseline mapping and the current manual route as separate state.
+The GATT Inspector can capture versioned snapshots containing services, characteristics, descriptors, normalized UUIDs, properties, discovery/access status, cached/reused/ownership metadata, Auto Detect baseline mapping and current manual route as separate state.
 
-Snapshots can be:
+Snapshots can be exported to TXT, saved/reloaded as JSON and compared deterministically as A vs B.
 
-- captured from the current Inspector discovery state
-- exported as human-readable TXT
-- saved/reloaded as versioned structured JSON
-- compared deterministically as A vs B
-
-The comparer reports added/removed services, characteristics and descriptors, property changes, discovery/access-state changes, cache/ownership changes, Auto Detect mapping changes and manual-route changes.
-
-For RT-950 this permits a normal FFE0/FFE1 snapshot to be compared against an `AccessDenied`/partial session, a firmware/settings change, or a temporary manual FF31 route without mutating the qualified Auto Detect baseline.
+Checklist: `PHASE_F_TEST_CHECKLIST.txt`
 
 ## KISS TCP Bridge
 
 Open **View → KISS TCP Bridge...**.
 
-The bridge exposes the current BLE KISS transport to local TCP KISS clients while preserving the existing BLE ownership model:
+- OFF by default
+- default endpoint `127.0.0.1:8001`
+- LAN/all-interface binding requires explicit confirmation
+- no second BLE CCCD subscription
+- raw BLE KISS bytes are forwarded unchanged to connected TCP clients
+- raw TCP stream bytes are written unchanged through the current qualified BLE write route
+- TCP packet boundaries are not treated as KISS frame boundaries
+- bounded per-client queues prevent unbounded memory growth
+- a slow/backpressured client is disconnected
+- BLE disconnect or connection-context replacement closes stale TCP clients
+- Auto Detect baseline write routing takes precedence over a temporary RT-950 FF31 diagnostic route
 
-- bridge is **OFF by default**
-- default endpoint is **127.0.0.1:8001**
-- LAN/all-interface binding is only enabled after explicit selection and a warning confirmation
-- closing the bridge window stops the listener
-- BLE notification bytes are observed from the existing notification capture path; no second CCCD subscription is created
-- BLE KISS RX bytes are forwarded unchanged to every connected TCP client
-- TCP stream bytes are written unchanged through the shared serialized BLE GATT write pipeline
-- TCP packet boundaries are not treated as KISS frame boundaries; independent KISS decoders are used only for counters/diagnostics
-- one bounded outbound queue is maintained per TCP client
-- a client that cannot keep up is disconnected instead of allowing unbounded memory growth
-- BLE disconnect or connection-context replacement closes old TCP clients
-- reconnect uses fresh connection-scoped GATT objects
+Phase G is merged and Windows CI green; real RT-950 + external KISS client testing is still required.
 
-For Auto Detect profiles the bridge deliberately prefers the **Auto Detect baseline write characteristic**. A temporary RT-950 manual FF31 diagnostic selection therefore does not redirect KISS TCP traffic away from the qualified FFE1 data path.
+Checklist: `PHASE_G_TEST_CHECKLIST.txt`
 
-The bridge window displays endpoint, BLE readiness, client count, BLE→TCP bytes/frames, TCP→BLE bytes/frames, BLE write bytes, rejected writes, malformed KISS count and backpressure disconnects.
+## Multi-Device Live Compare — Phase H
 
-A successful TCP→BLE GATT write proves BLE delivery to the selected characteristic only. It does not by itself prove that the radio transmitted RF.
+Open **View → Multi-Device Live Compare...**.
 
-## Terminal / UI
+Phase H adds a separate multi-device diagnostic ownership domain without reusing the normal MainWindow live GATT wrappers. It can scan nearby BLE devices and maintain up to four live compare sessions.
+
+Each compare session owns its own:
+
+- `BluetoothLEDevice`
+- selected `GattDeviceService`
+- Write and Notify characteristic wrappers
+- GATT operation semaphore
+- TX serialization semaphore
+- CCCD subscription state
+- `KissStreamDecoder`
+- notification/RX/KISS/AX.25/APRS/TX counters
+- connection generation used to reject stale queued routes
+- session identity and last decoded packet state
+
+The compare grid shows device identity, state, detected profile, service/write/notify UUIDs, CCCD readiness, counters and latest decoded packet metadata. **Compare A / Compare B** produces a deterministic live-state comparison, and KISS HEX TX can be sent to the explicitly selected session.
+
+The architecture requirement is strict: no live Device A service/characteristic wrapper, decoder, GATT gate or TX queue may be used by Device B. Closing the compare window disposes its compare sessions.
+
+Windows PR CI currently covers Phase H isolation static checks and deterministic comparison tests, but this is not a substitute for the required real two-device test.
+
+Checklist: `PHASE_H_TEST_CHECKLIST.txt`
+
+## Terminal / UI baseline
 
 - full dark mode and dark scrollbars
-- configurable serial output foreground/background colors
+- configurable terminal foreground/background
 - File / View / Settings / About menus
-- Export Log
-- LF default line ending
-- Local echo default off
-- Enter-to-send on each command row
-- transparent multi-resolution application icon
+- LF default
+- Local Echo default OFF
+- Enter-to-send
+- 1-5 persistent TX command rows
+- transparent application icon
 - self-contained single-file Windows x64 publish
 
 ## Canonical Windows build
 
-GitHub Actions is the authoritative build path. Every push to `main`, pull request and manual workflow run executes:
-
-- static regression checks
-- Phase F GATT snapshot static checks
-- Phase G KISS TCP bridge static checks
-- protocol decoder tests
-- notification capture tests
-- log filter tests
-- session capture/replay tests
-- manual RT-950 GATT TX payload/queue tests
-- GATT snapshot/compare tests
-- KISS TCP loopback/lifecycle tests
-- .NET restore
-- Windows x64 self-contained single-file publish
-- SHA-256 generation
-- artifact upload
-
 Open **Actions → Build Windows EXE**.
+
+The workflow runs the regression suite plus phase-specific static/unit/integration tests, then performs the authoritative Windows restore and self-contained win-x64 single-file publish.
+
+Current Phase H pipeline includes:
+
+1. static regression checks
+2. Phase F static checks
+3. Phase G static checks
+4. Phase H isolation static checks
+5. Protocol tests
+6. Notification tests
+7. Log Filter tests
+8. Session Capture/Replay tests
+9. Manual RT-950 TX tests
+10. GATT Snapshot tests
+11. KISS TCP Bridge loopback/lifecycle tests
+12. Multi-Device Compare tests
+13. `dotnet restore`
+14. Windows self-contained single-file publish
+15. EXE SHA-256 generation
+16. artifact upload
 
 Expected artifact contents:
 
@@ -259,45 +175,29 @@ BLESerialTerminal.exe
 BLESerialTerminal.exe.sha256
 ```
 
-The EXE is Windows x64, self-contained and requires no separate .NET runtime installation.
+The EXE is Windows x64 and self-contained; no separate .NET runtime installation is required.
 
-## RT-950 manual FF31 vs FFE1 hardware test
+## Phase validation files
 
-Follow `RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt`.
-
-Core comparison:
-
-1. connect RT-950 with Auto Detect and wait for `RADTEL KISS READY`
-2. confirm FFE1 Notify is active and inspect the real FF31 property flags
-3. click **Load RT950 Test Commands**
-4. click **RT950 OEM TEST** and Send 1
-5. capture the FF31 write status and any FFE1 response / OEM `06`
-6. click **RT950 FFE1 TEST** without changing the 14-byte payload
-7. Send 1 again and compare the FFE1 write status/response
-8. receive another ordinary KISS/APRS packet afterward to prove FFE1 RX was not broken by the manual TX route
-
-The code/CI gate cannot substitute for this radio-side test. Do not mark FF31/FEE1 host-to-radio behavior hardware-qualified until those runtime logs are captured from the real RT-950.
-
-## Phase validation
-
-- Phase B: `PHASE_B_TEST_CHECKLIST.txt`
-- Phase C: `PHASE_C_TEST_CHECKLIST.txt`
-- Phase D: `PHASE_D_TEST_CHECKLIST.txt`
-- Phase F: `PHASE_F_TEST_CHECKLIST.txt`
-- Phase G: `PHASE_G_TEST_CHECKLIST.txt`
-- RT-950 v13 baseline: `RT950_TEST_CHECKLIST.txt`
+- `RT950_TEST_CHECKLIST.txt`
+- `RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt`
+- `PHASE_B_TEST_CHECKLIST.txt`
+- `PHASE_C_TEST_CHECKLIST.txt`
+- `PHASE_D_TEST_CHECKLIST.txt`
+- `PHASE_F_TEST_CHECKLIST.txt`
+- `PHASE_G_TEST_CHECKLIST.txt`
+- `PHASE_H_TEST_CHECKLIST.txt`
+- `ROADMAP.txt`
 
 ## Local Windows publish
 
-With .NET 8 SDK installed:
+With the .NET 8 SDK installed:
 
 ```bat
 PUBLISH_SINGLE_EXE_WIN64.bat
 ```
 
-## Ubuntu cross-build
-
-Historical Ubuntu cross-publish helpers remain for compatibility/debug use, but GitHub Actions on `windows-latest` is the authoritative release environment.
+GitHub Actions on Windows remains the release authority.
 
 ## Runtime requirements
 
