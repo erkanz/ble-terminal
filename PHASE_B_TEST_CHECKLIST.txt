@@ -1,0 +1,151 @@
+BLE SERIAL TERMINAL - PHASE B TEST CHECKLIST
+=============================================
+Phase: B - KISS / AX.25 / APRS Decoder
+Status at creation: IN PROGRESS
+Repository: https://github.com/erkanz/ble-terminal
+
+PURPOSE
+-------
+Validate the layered protocol pipeline without disturbing the Phase A BLE/GATT baseline.
+
+Required order:
+RAW BLE notification -> KISS stream reassembly -> AX.25 decode -> APRS decode
+
+A higher-layer parser failure must never hide the lower-layer raw evidence.
+
+
+1. AUTOMATED / CI
+-----------------
+[ ] tests/STATIC_REGRESSION_CHECK.py PASS
+[ ] tests/ProtocolTests/ProtocolTests.csproj PASS
+[ ] KISS complete-frame fixture PASS
+[ ] KISS fragmented-frame fixture PASS
+[ ] multiple KISS frames in one notification fixture PASS
+[ ] FEND/FESC escape fixture PASS
+[ ] malformed KISS escape fixture PASS with bytes preserved
+[ ] AX.25 UI/PID F0 fixture PASS without requiring an FCS
+[ ] APRS uncompressed position fixture PASS
+[ ] APRS message ACK fixture PASS
+[ ] APRS object fixture PASS
+[ ] APRS item fixture PASS
+[ ] unsupported APRS type preserves raw information
+[ ] real RT-950 Phase A captured frame fixture decodes as AX.25 UI/PID F0
+[ ] dotnet restore PASS
+[ ] Windows self-contained single EXE publish PASS
+[ ] BLESerialTerminal.exe SHA-256 produced
+[ ] GitHub Actions artifact upload PASS
+
+
+2. RT-950 BLE/GATT REGRESSION
+-----------------------------
+[ ] Auto Detect still identifies RADTEL_RT950_KISS
+[ ] service=FFE0
+[ ] write=FFE1
+[ ] notify=FFE1
+[ ] sameCharacteristic=true
+[ ] FFE1 VALUECHANGED handler attaches once
+[ ] FFE1 CCCD WRITE RESULT=Success
+[ ] RADTEL KISS READY
+[ ] RAW BLE NOTIFICATION appears before KISS/AX25/APRS output
+[ ] GATT Inspector cache reuse remains functional
+[ ] Inspector refresh/close does not stop later RX
+
+
+3. REAL PACKET DECODER TEST
+---------------------------
+1) Launch the newest GitHub Actions EXE.
+2) Connect RT-950 with Auto Detect.
+3) Wait for RADTEL KISS READY.
+4) Open View -> Decoded KISS / AX.25 / APRS packets...
+5) Transmit a real APRS packet from another radio.
+
+Expected main terminal sequence:
+[ ] RAW BLE NOTIFICATION
+[ ] KISS RX
+[ ] AX25 RX SRC=... DST=... PATH=... TYPE=UI PID=F0
+[ ] APRS RX TYPE=... SUMMARY=...
+
+Expected decoded-packet window:
+[ ] a new row appears
+[ ] BLE column shows FFE1
+[ ] KISS column shows port/command
+[ ] Source callsign is decoded
+[ ] Destination callsign is decoded
+[ ] Digipeater path is decoded when present
+[ ] Type shows APRS category
+[ ] Summary is human-readable
+[ ] selecting the row shows KISS RAW HEX
+[ ] selecting the row shows KISS UNESCAPED bytes
+[ ] AX.25 section shows source/destination/path/control/PID
+[ ] AX.25 section states FCS is not supplied by KISS transport
+[ ] APRS section shows original information field
+[ ] APRS parsed fields/warnings are visible
+
+
+4. APRS CATEGORY SMOKE TESTS
+----------------------------
+Use real traffic when available; automated fixtures cover synthetic baseline.
+
+[ ] Position ! or =
+[ ] Timestamped position / or @
+[ ] Message :
+[ ] ACK / REJ
+[ ] Status >
+[ ] Object ;
+[ ] Item )
+[ ] Telemetry T#
+[ ] Weather _ or weather tokens in a position extension
+[ ] Mic-E ` or ' is identified and raw payload retained
+[ ] Third-party } is identified and encapsulated raw packet retained
+[ ] Unknown/unsupported type remains visible rather than being discarded
+
+Not every category requires a live RF example to complete Phase B if the automated fixture
+for that category is deterministic and the real RT-950 end-to-end decoder path passes.
+
+
+5. KISS TRANSPORT EDGE CASES
+----------------------------
+[ ] frame split across BLE notifications does not decode until trailing FEND
+[ ] multiple frames in one BLE notification produce multiple decoded rows
+[ ] DB DC becomes C0
+[ ] DB DD becomes DB
+[ ] unknown DB xx escape is flagged but original bytes remain visible
+[ ] repeated C0 does not create meaningless empty packets
+[ ] KISS non-data commands do not get mis-decoded as AX.25
+
+
+6. PACKET WINDOW UI
+-------------------
+[ ] View menu opens Decoded KISS / AX.25 / APRS packets
+[ ] opening it before traffic is safe
+[ ] opening it after packets already arrived shows history
+[ ] Copy detail works
+[ ] Export works
+[ ] Clear clears decoded packet history only
+[ ] raw terminal log is not cleared by packet-window Clear
+[ ] dark/light theme remains readable
+[ ] terminal custom colors remain independent
+[ ] window can be closed and reopened without affecting BLE RX
+[ ] packet history is bounded; sustained use does not grow without limit
+
+
+7. PHASE B COMPLETION GATE
+--------------------------
+Phase B may be marked COMPLETE only when:
+
+[ ] protocol tests are green
+[ ] existing v13 BLE/GATT static regression tests are green
+[ ] Windows GitHub Actions build is green
+[ ] self-contained EXE artifact exists
+[ ] one real RT-950 APRS packet reaches the decoded packet window
+[ ] source/destination/path AX.25 decode is verified from that real packet
+[ ] APRS original information is preserved and category is shown
+[ ] no Phase A RT-950 regression is observed
+[ ] README is updated
+[ ] ROADMAP.txt is updated with exact commit/run and test status
+
+If CI passes but real RT-950 decoder validation has not yet been performed, status must be:
+HARDWARE TEST PENDING
+
+Next phase after completion:
+PHASE C - Notification Monitor
