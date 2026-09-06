@@ -5,12 +5,18 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 main = (ROOT / 'MainWindow.xaml.cs').read_text(encoding='utf-8')
 main_protocol = (ROOT / 'MainWindow.Protocol.cs').read_text(encoding='utf-8')
+main_notifications = (ROOT / 'MainWindow.Notifications.cs').read_text(encoding='utf-8')
 insp = (ROOT / 'GattInspectorWindow.xaml.cs').read_text(encoding='utf-8')
+insp_notifications = (ROOT / 'GattInspectorWindow.Notifications.cs').read_text(encoding='utf-8')
 models = (ROOT / 'GattInspectorModels.cs').read_text(encoding='utf-8')
 ctx = (ROOT / 'AutoDetectedGattContext.cs').read_text(encoding='utf-8')
 kiss = (ROOT / 'KissStreamDecoder.cs').read_text(encoding='utf-8')
 ax25 = (ROOT / 'Ax25Decoder.cs').read_text(encoding='utf-8')
 aprs = (ROOT / 'AprsDecoder.cs').read_text(encoding='utf-8')
+notifications = (ROOT / 'NotificationCapture.cs').read_text(encoding='utf-8')
+notification_window = (ROOT / 'NotificationMonitorWindow.xaml.cs').read_text(encoding='utf-8')
+notification_xaml = (ROOT / 'NotificationMonitorWindow.xaml').read_text(encoding='utf-8')
+main_xaml = (ROOT / 'MainWindow.xaml').read_text(encoding='utf-8')
 
 checks = {
     'auto cache context exists': 'class AutoDetectedGattContext' in ctx,
@@ -40,6 +46,20 @@ checks = {
     'main Phase B decoder is isolated from Inspector decoders': 'ReferenceEquals(decoder, _autoKissDecoder)' in main_protocol,
     'main protocol processing is queued after KISS logging': 'Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame' in main_protocol,
     'decoded packet window integration exists': 'DecodedPacketsMenuItem_Click' in main_protocol and 'DecodedPacketsWindow' in main_protocol,
+
+    # Phase C notification monitor guards.
+    'notification capture store is bounded': 'RemoveRange(0, _history.Count - _maxHistory)' in notifications,
+    'notification sequence is monotonic': 'Interlocked.Increment(ref _sequence)' in notifications,
+    'notification counters are per characteristic': '_byCharacteristic' in notifications and 'ByCharacteristic' in notifications,
+    'main capture uses independent ValueChanged handler': 'NotificationCaptureCharacteristic_ValueChanged' in main_notifications and 'target.ValueChanged += NotificationCaptureCharacteristic_ValueChanged' in main_notifications,
+    'main monitor KISS decoder is isolated': '_notificationMonitorKissDecoder' in main_notifications and 'ReferenceEquals(decoder, _autoKissDecoder)' in main_protocol,
+    'notification monitor is available from View menu': 'BLE Notification Monitor...' in main_xaml and 'NotificationMonitorMenuItem_Click' in main_notifications,
+    'notification monitor pause does not stop capture': 'if (!_paused)' in notification_window and 'PAUSED (capture continues)' in notification_window,
+    'notification UI history is bounded': 'MaxVisibleRows = 5000' in notification_window,
+    'notification grid uses virtualization': 'VirtualizingPanel.VirtualizationMode="Recycling"' in notification_xaml,
+    'inspector multi-characteristic capture follows active subscriptions': '_subscribedCharacteristics.ToHashSet()' in insp_notifications and 'NotificationCaptureCharacteristic_ValueChanged' in insp_notifications,
+    'inspector auto terminal notifications are not double counted': 'Do not double-count the same FFE1 notification' in insp_notifications,
+    'notification capture failures are isolated from BLE RX': 'must never interfere with the terminal RX path' in main_notifications and 'must never alter Inspector notification behavior' in insp_notifications,
 }
 
 for xaml in ROOT.glob('*.xaml'):
