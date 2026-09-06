@@ -8,6 +8,7 @@ main_protocol = (ROOT / 'MainWindow.Protocol.cs').read_text(encoding='utf-8')
 main_notifications = (ROOT / 'MainWindow.Notifications.cs').read_text(encoding='utf-8')
 main_logs = (ROOT / 'MainWindow.Logs.cs').read_text(encoding='utf-8')
 main_session = (ROOT / 'MainWindow.Session.cs').read_text(encoding='utf-8')
+main_rt950_tx = (ROOT / 'MainWindow.Rt950Tx.cs').read_text(encoding='utf-8')
 insp = (ROOT / 'GattInspectorWindow.xaml.cs').read_text(encoding='utf-8')
 insp_notifications = (ROOT / 'GattInspectorWindow.Notifications.cs').read_text(encoding='utf-8')
 models = (ROOT / 'GattInspectorModels.cs').read_text(encoding='utf-8')
@@ -26,6 +27,10 @@ session_capture = (ROOT / 'SessionCapture.cs').read_text(encoding='utf-8')
 session_replay = (ROOT / 'SessionReplayProcessor.cs').read_text(encoding='utf-8')
 session_window = (ROOT / 'SessionCaptureWindow.xaml.cs').read_text(encoding='utf-8')
 session_xaml = (ROOT / 'SessionCaptureWindow.xaml').read_text(encoding='utf-8')
+tx_payload = (ROOT / 'TxPayloadBuilder.cs').read_text(encoding='utf-8')
+tx_queue = (ROOT / 'SerialTaskQueue.cs').read_text(encoding='utf-8')
+gatt_routing = (ROOT / 'GattRoutingModels.cs').read_text(encoding='utf-8')
+manual_tx_tests = (ROOT / 'tests' / 'ManualTxTests' / 'Program.cs').read_text(encoding='utf-8')
 main_xaml = (ROOT / 'MainWindow.xaml').read_text(encoding='utf-8')
 
 checks = {
@@ -56,6 +61,7 @@ checks = {
     'main Phase B decoder is isolated from Inspector decoders': 'ReferenceEquals(decoder, _autoKissDecoder)' in main_protocol,
     'main protocol processing is queued after KISS logging': 'Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame' in main_protocol,
     'decoded packet window integration exists': 'DecodedPacketsMenuItem_Click' in main_protocol and 'DecodedPacketsWindow' in main_protocol,
+    'APRS decode is not printed into serial terminal': 'AppendSystemLine($"APRS RX' not in main_protocol and '_structuredLogStore.Add' in main_protocol,
 
     # Phase C notification monitor guards.
     'notification capture store is bounded': 'RemoveRange(0, _history.Count - _maxHistory)' in notifications,
@@ -105,6 +111,34 @@ checks = {
     'Phase E session UI is available from View menu': 'Session Capture / Offline Replay...' in main_xaml and 'SessionCaptureMenuItem_Click' in main_session,
     'Phase E replay grids use virtualization': session_xaml.count('VirtualizingPanel.VirtualizationMode="Recycling"') >= 2,
     'Phase E session window closes with main app': 'CloseSessionCaptureWindow()' in main_protocol,
+
+    # User-priority RT950 manual GATT TX diagnostics.
+    'manual GATT routing controls exist': all(x in main_xaml for x in ['ServiceRouteComboBox', 'NotifyRouteComboBox', 'WriteRouteComboBox', 'WriteTypeComboBox']),
+    'manual routing uses cached selected-service characteristics': 'ServiceCharacteristics' in main_rt950_tx and 'CurrentServiceCharacteristics' in main_rt950_tx,
+    'manual write route does not rewrite AutoDetectedGattContext mapping': 'This is intentionally only the active TX route' in main_rt950_tx and '_writeCharacteristic = choice.Characteristic' in main_rt950_tx,
+    'write type supports response and no-response': 'With Response' in main_xaml and 'Without Response' in main_xaml and 'GattWriteOption.WriteWithResponse' in main_rt950_tx and 'GattWriteOption.WriteWithoutResponse' in main_rt950_tx,
+    'manual writes share GATT serialization gate': '_gattOperationGate.WaitAsync()' in main_rt950_tx and 'ExecuteTxRequestAsync' in main_rt950_tx,
+    'manual TX queue exists': 'class SerialTaskQueue' in tx_queue and '_manualTxQueue.Enqueue' in main_rt950_tx,
+    'manual TX request freezes route and payload': all(x in gatt_routing for x in ['WriteUuid', 'Payload', 'BluetoothAddress', 'ConnectedAt', 'ChunkSize']),
+    'detailed RAW BLE WRITE log exists': all(x in main_rt950_tx for x in ['RAW BLE WRITE', 'COMMAND_SLOT=', 'SERVICE=', 'UUID=', 'TYPE=', 'LEN=', 'HEX=']),
+    'write start result logging exists': 'WRITE START RESULT=ACCEPTED' in main_rt950_tx and 'WRITE START RESULT=REJECTED' in main_rt950_tx,
+    'write completion status logging exists': all(x in main_rt950_tx for x in ['WRITE COMPLETE', 'STATUS_CODE=', 'PROTOCOL_ERROR=']),
+    'without-response submission logging exists': 'WRITE SUBMITTED NO_RESPONSE' in main_rt950_tx,
+    'actual characteristic properties are logged': all(x in main_rt950_tx for x in ['GATT CHARACTERISTIC', 'WRITE_WITHOUT_RESPONSE=', 'NOTIFY=', 'INDICATE=']),
+    'unsupported selected write type disables send': 'does not support' in main_rt950_tx and 'SendButton.IsEnabled = supported' in main_rt950_tx,
+    'FFE1 notify active summary exists': all(x in main_rt950_tx for x in ['BLE NOTIFY ACTIVE', 'CCCD=SUCCESS']),
+    'RT950 OEM ACK 06 diagnostic exists': 'RT950 OEM ACK RECEIVED: 06' in main_rt950_tx,
+    'RT950 OEM and FFE1 presets exist': 'RT950 OEM TEST' in main_rt950_tx and 'RT950 FFE1 TEST' in main_rt950_tx,
+    'RT950 presets never auto-send': 'DATA_SENT=NO' in main_rt950_tx,
+    'explicit RT950 test command loader exists': 'Load RT950 Test Commands' in main_xaml and 'OEM Handshake' in main_rt950_tx and '50 52 4F 47 52 41 4D 42 54 39 30 30 30 55' in main_rt950_tx,
+    'HEX NONE payload builder adds no byte': 'TxLineEnding.None' in tx_payload and 'if (ending.Length == 0)' in tx_payload,
+    'HEX parser keeps compact and spaced support': 'ParseHex' in tx_payload and 'char.IsWhiteSpace' in tx_payload,
+    'five independent command rows exist': all(f'CommandRow{i}' in main_xaml for i in range(1, 6)) and all(f'Send {i}' in main_xaml for i in range(1, 6)),
+    'command row count setting supports 1 through 5': 'Number of TX command rows' in main_xaml and all(f'Tag="{i}"' in main_xaml for i in range(1, 6)),
+    'command slot labels and contents persist': 'tx-command-settings.json' in main_rt950_tx and 'TxCommandPreferencesData' in main_rt950_tx and 'SaveTxCommandPreferences' in main_rt950_tx,
+    'command area is bounded and scrollable': 'TxCommandsExpander' in main_xaml and 'MaxHeight="190"' in main_xaml and 'VerticalScrollBarVisibility="Auto"' in main_xaml,
+    'manual TX exact OEM fixture has a unit test': 'HEX + NONE preserves exact OEM handshake bytes' in manual_tx_tests and 'payload.Length == 14' in manual_tx_tests,
+    'rapid command queue has unit tests': 'rapid command writes remain serialized' in manual_tx_tests and 'five command slots preserve queue order and payload boundaries' in manual_tx_tests,
 }
 
 for xaml in ROOT.glob('*.xaml'):
