@@ -16,11 +16,13 @@ public partial class MultiDeviceCompareWindow : Window
     private readonly ObservableCollection<MultiDeviceSessionRow> _sessionRows = new();
     private readonly Dictionary<string, MultiDeviceSession> _sessionsById = new(StringComparer.Ordinal);
     private readonly DispatcherTimer _refreshTimer;
+    private readonly Func<ulong, bool>? _addressReservedByMain;
     private BluetoothLEAdvertisementWatcher? _watcher;
     private bool _closing;
 
-    public MultiDeviceCompareWindow()
+    public MultiDeviceCompareWindow(Func<ulong, bool>? addressReservedByMain = null)
     {
+        _addressReservedByMain = addressReservedByMain;
         InitializeComponent();
         DiscoveryGrid.ItemsSource = _visibleDiscovery;
         SessionGrid.ItemsSource = _sessionRows;
@@ -144,11 +146,36 @@ public partial class MultiDeviceCompareWindow : Window
             return;
         }
 
-        if (_sessionsById.Values.Any(s => s.Address == item.Address))
+        if (_addressReservedByMain?.Invoke(item.Address) == true)
         {
-            MessageBox.Show(this, "This BLE address already has an independent compare session.", "Multi-Device Compare", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this,
+                "This BLE address is currently owned by the main terminal connection. Disconnect it there before opening an independent compare session for the same physical device.",
+                "BLE address already in use",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
+
+        MultiDeviceSession? existing = _sessionsById.Values.FirstOrDefault(s => s.Address == item.Address);
+        if (existing != null)
+        {
+            string state = existing.Snapshot.State;
+            if (state is "DISCONNECTED" or "ERROR")
+            {
+                AppendDiagnostic($"[{existing.SessionId}] RECONNECT REQUEST {item.Name} {item.AddressText}");
+                await existing.ConnectAsync();
+                UpdateRow(existing);
+                return;
+            }
+
+            MessageBox.Show(this,
+                $"This BLE address already has an active compare session ({state}).",
+                "Multi-Device Compare",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
         if (_sessionsById.Count >= MaxSessions)
         {
             MessageBox.Show(this, $"A maximum of {MaxSessions} independent live compare sessions is allowed.", "Multi-Device Compare", MessageBoxButton.OK, MessageBoxImage.Warning);
