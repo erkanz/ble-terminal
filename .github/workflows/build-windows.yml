@@ -116,6 +116,38 @@ jobs:
           -p:DebugSymbols=false
           -o dist/win-x64
 
+      - name: Published EXE startup smoke gate
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD 'dist/win-x64/BLESerialTerminal.exe'
+          if (-not (Test-Path $exe)) {
+            throw "BLESerialTerminal.exe was not produced"
+          }
+
+          $process = $null
+          try {
+            $process = Start-Process $exe -PassThru
+            Start-Sleep -Seconds 5
+            $process.Refresh()
+            if ($process.HasExited) {
+              throw "Published EXE exited during startup smoke test. Exit code: $($process.ExitCode)"
+            }
+            Write-Host "STARTUP SMOKE PASS: process remained alive after MainWindow initialization window."
+          }
+          finally {
+            if ($process -ne $null) {
+              try {
+                $process.Refresh()
+                if (-not $process.HasExited) {
+                  Stop-Process -Id $process.Id -Force
+                }
+              }
+              catch {
+                Write-Host "Startup smoke cleanup warning: $($_.Exception.Message)"
+              }
+            }
+          }
+
       - name: Verify EXE and generate SHA-256
         shell: pwsh
         run: |

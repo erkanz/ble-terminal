@@ -673,6 +673,11 @@ public partial class MainWindow
 
     private void UpdateTxSendAvailability()
     {
+        // SelectionChanged can fire while InitializeComponent() is still constructing XAML.
+        // Named controls declared later in the XAML are not guaranteed to exist yet.
+        if (SendButton == null || WriteTypeComboBox == null || RoutingStatusTextBlock == null)
+            return;
+
         if (_writeCharacteristic == null || _device == null || !_bleConnected)
         {
             SendButton.IsEnabled = false;

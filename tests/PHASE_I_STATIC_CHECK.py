@@ -6,6 +6,7 @@ app = (ROOT / 'App.xaml.cs').read_text(encoding='utf-8')
 runtime = (ROOT / 'RuntimeDiagnostics.cs').read_text(encoding='utf-8')
 protocol = (ROOT / 'MainWindow.Protocol.cs').read_text(encoding='utf-8')
 main = (ROOT / 'MainWindow.xaml.cs').read_text(encoding='utf-8')
+rt950_tx = (ROOT / 'MainWindow.Rt950Tx.cs').read_text(encoding='utf-8')
 bridge = (ROOT / 'MainWindow.KissTcpBridge.cs').read_text(encoding='utf-8')
 multi = (ROOT / 'MainWindow.MultiDeviceCompare.cs').read_text(encoding='utf-8')
 workflow = (ROOT / '.github' / 'workflows' / 'build-windows.yml').read_text(encoding='utf-8')
@@ -27,8 +28,10 @@ checks = {
     'multi-device window is closed from main shutdown': '_multiDeviceCompareWindow?.Close()' in multi,
     'nullable APRS position result has success postcondition': 'NotNullWhen(true)' in aprs,
     'session replay test no longer dereferences nullable decoder output directly': 'decoded[0].Ax25!' not in session_tests and 'decoded[0].Aprs!' not in session_tests,
+    'TX availability is safe during XAML construction': 'SendButton == null || WriteTypeComboBox == null || RoutingStatusTextBlock == null' in rt950_tx,
     'workflow executes Phase I static gate': 'Phase I production hardening static checks' in workflow and 'tests/PHASE_I_STATIC_CHECK.py' in workflow,
     'workflow contains compiler warnings gate': 'Compiler warnings gate' in workflow and 'TreatWarningsAsErrors=true' in workflow,
+    'workflow contains published EXE startup smoke gate': 'Published EXE startup smoke gate' in workflow and 'Start-Process $exe -PassThru' in workflow and 'HasExited' in workflow,
 }
 
 failed = [name for name, ok in checks.items() if not ok]
