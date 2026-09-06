@@ -1,201 +1,164 @@
 BLE SERIAL TERMINAL - MASTER ROADMAP / CONTINUATION FILE
-====================================================
+========================================================
 Repository: https://github.com/erkanz/ble-terminal
 Canonical branch: main
 Platform: Windows 10 2004+ / Windows 11 x64
 Framework: .NET 8 / WPF
-Primary build environment: GitHub Actions / windows-latest
-Project role: Native Windows BLE/GATT serial terminal, low-level GATT diagnostic tool,
-              KISS/AX.25/APRS analyzer, capture/replay platform, GATT snapshot comparer,
-              and local KISS TCP bridge.
+Authoritative build: GitHub Actions / windows-latest
+Date: 2026-09-06
+Roadmap revision: 6
 
-ROADMAP REVISION
-----------------
-Roadmap revision: 5
-Last updated: 2026-09-06
-Hardware-qualified BLE baseline: v13 RT-950 GATT Cache / FFE1 Notify Fix
-Current implementation state:
-- Phase A COMPLETE
-- Phases B/C/D/E implemented and CI-qualified; hardware/runtime completion gates remain
-- RT950 manual GATT TX diagnostics implemented; real FF31/FFE1 test pending
-- Phase F GATT Snapshot / Compare implemented and Windows CI green; hardware test pending
-- Phase G KISS TCP Bridge implementation complete on development branch; CI validation in progress
-Current implementation priority after Phase G CI/hardware validation:
-- PHASE H - MULTI-DEVICE LIVE COMPARE
-Then:
-- PHASE I - PRODUCTION HARDENING / RELEASE
+PURPOSE OF THIS FILE
+--------------------
+This is the persistent handoff document for future ChatGPT chats. GitHub main is the
+source of truth. Every substantial phase must update this file before that phase is
+called COMPLETE. Do not ask the user to reconstruct architecture that is already
+recorded here.
 
-CURRENT VALIDATION GATES
-------------------------
-- PHASE B decoded KISS/AX.25/APRS real-hardware UI validation
-- PHASE C Notification Monitor real-hardware validation
-- PHASE D Log Filters/Search runtime validation
-- PHASE E Session Capture/Offline Replay real RT-950 capture/replay validation
-- RT950 MANUAL GATT TX FF31 vs FFE1 real-hardware validation
-- PHASE F real GATT snapshot / compare validation
-- PHASE G real BLE KISS <-> TCP client bridge validation
+Normal continuation command for a new chat:
 
-LAST KNOWN GREEN WINDOWS BASELINE
----------------------------------
-Commit: f4ac693aa911a005cf29f5ed2420f77f8fe8882f
-GitHub Actions run: 34019273197 - SUCCESS
-Artifact ID: 9984956587
-BLESerialTerminal.exe size: 78,044,460 bytes
+    ble-terminal projesine GitHub main ROADMAP.txt'e gore kaldigi yerden devam et.
+
+The next assistant must read this file, inspect current main, inspect the newest
+Build Windows EXE Actions run, inspect the first unfinished phase/checklist, and then
+continue from GitHub rather than from an old ZIP.
+
+
+======================================================================
+1. CURRENT PROJECT STATE
+======================================================================
+
+Hardware-qualified BLE baseline:
+    v13 RT-950 GATT Cache / FFE1 Notify Fix
+
+Current phase status:
+- Phase A - RT-950 hardware qualification: COMPLETE
+- Phase B - KISS / AX.25 / APRS decoder: CI COMPLETE / HARDWARE TEST PENDING
+- Phase C - Notification Monitor: CI COMPLETE / HARDWARE TEST PENDING
+- Phase D - Log Filters / Search: CI COMPLETE / RUNTIME TEST PENDING
+- Phase E - Session Capture / Offline Replay: CI COMPLETE / HARDWARE TEST PENDING
+- RT950 Manual GATT TX diagnostics: CI COMPLETE / HARDWARE TEST PENDING
+- Phase F - GATT Snapshot / Compare: CI COMPLETE / HARDWARE TEST PENDING
+- Phase G - KISS TCP Bridge: CI COMPLETE / HARDWARE + EXTERNAL CLIENT TEST PENDING
+- Phase H - Multi-Device Live Compare: CI COMPLETE ON PR / TWO-DEVICE RUNTIME TEST PENDING
+- Phase I - Production Hardening / Release: NOT STARTED
+
+Current implementation priority:
+1. merge Phase H after latest PR head remains green
+2. run authoritative main Windows build
+3. perform Phase H real two-device isolation test when hardware is available
+4. then Phase I production hardening/release
+
+Older hardware/runtime gates from B/C/D/E/F/G/manual RT950 remain open and must not be
+silently converted to PASS.
+
+
+======================================================================
+2. KNOWN GREEN BUILD EVIDENCE
+======================================================================
+
+PHASE G - AUTHORITATIVE MAIN BASELINE
+-------------------------------------
+Main commit:
+    b411591cd6a635f408e0adfbadbf001fb3b5cfaa
+GitHub Actions run:
+    34020712099 - SUCCESS
+Artifact ID:
+    9985404150
+BLESerialTerminal.exe size:
+    78,062,161 bytes
 BLESerialTerminal.exe SHA-256:
-cc1ca4a3a15d494c6c40e18f238b493151275b156a016303b84879088daa9224
-Artifact ZIP digest:
-e1bf50720d39ebbf1c6097cb6ab3c65c1e24b8d75c0931173d0ef168ce0c6deb
+    d8392409281f75c019b630effb53968d047fe737d650a3c0d0615491c28bd9fc
 
-Automated verification at that baseline:
-- existing static regression checks: PASS
-- Phase F GATT snapshot static checks: PASS - 14 checks
-- protocol decoder tests: PASS - 40 checks
-- notification capture tests: PASS - 15 checks
-- structured log/filter tests: PASS - 14 checks
-- session capture/replay tests: PASS - 19 checks
-- manual RT950 GATT TX tests: PASS - 13 checks
-- GATT Snapshot / Compare tests: PASS - 18 checks
-- dotnet restore: PASS
+Phase G automated evidence:
+- existing static regression: PASS
+- Phase F static: PASS
+- Phase G static: PASS - 25 checks
+- Protocol tests: PASS - 40 checks
+- Notification tests: PASS - 15 checks
+- Log Filter tests: PASS - 14 checks
+- Session tests: PASS - 19 checks
+- Manual RT950 TX tests: PASS - 13 checks
+- GATT Snapshot tests: PASS - 18 checks
+- KISS TCP Bridge loopback/lifecycle tests: PASS - 25 checks
+- restore/publish/EXE/hash/artifact upload: PASS
+
+PHASE H - GREEN PR IMPLEMENTATION BUILD
+---------------------------------------
+Development branch:
+    phase-h-multi-device-compare
+PR:
+    #2 - Phase H: Multi-Device Live Compare
+Green implementation commit:
+    fa4d97af1dd0cab38a9569462111d5200271417a
+GitHub Actions run:
+    34037557327 - SUCCESS
+Artifact ID:
+    9990664978
+BLESerialTerminal.exe size:
+    78,078,258 bytes
+BLESerialTerminal.exe SHA-256:
+    f2b3e5c22035273647da9f5dd79be5dc32fa01d4dd61f302c48a210442133dc3
+Artifact ZIP SHA-256:
+    296f7ff313f2f6a1b82ba326d4c177bde0add578cd71aa6658cdc8b197133bf5
+
+Phase H automated evidence at that run:
+- existing static regression: PASS
+- Phase F static: PASS
+- Phase G static: PASS
+- Phase H isolation static: PASS - 22 checks
+- Protocol tests: PASS - 40 checks
+- Notification tests: PASS - 15 checks
+- Log Filter tests: PASS - 14 checks
+- Session tests: PASS - 19 checks
+- Manual RT950 TX tests: PASS - 13 checks
+- GATT Snapshot tests: PASS - 18 checks
+- KISS TCP Bridge tests: PASS - 25 checks
+- Multi-Device Compare tests: PASS - 15 checks
+- restore: PASS
 - Windows self-contained single-file publish: PASS
-- EXE verification + SHA-256 generation: PASS
+- EXE + SHA-256: PASS
 - artifact upload: PASS
 
-IMPORTANT CONTINUITY RULE
--------------------------
-This file is the persistent handoff document for future ChatGPT chats.
-GitHub main is the source of truth.
-EVERY PHASE MUST UPDATE THIS FILE BEFORE THE PHASE IS CALLED COMPLETE.
-Do not call hardware behavior tested unless a real hardware test was actually performed.
-Do not return to old ZIP handoff as the normal development workflow.
-Never claim an EXE exists until GitHub Actions has actually produced it.
-Never infer radio RF success or OEM-command acceptance from a successful GATT write alone.
+The final Phase H authoritative artifact is still the post-merge main build, not the PR
+artifact above. Do not report Phase H as merged/main-qualified until that main build exists.
 
 
 ======================================================================
-1. PROJECT OBJECTIVE
-======================================================================
-
-Build a production-ready Windows application that remains useful as:
-1) a generic BLE-UART serial terminal,
-2) a low-level GATT inspection/debug tool,
-3) a KISS / AX.25 / APRS protocol analyzer,
-4) a structured session-capture/replay system,
-5) a GATT snapshot/device-comparison tool,
-6) a local KISS TCP bridge for APRS/KISS applications,
-7) eventually a multi-device live diagnostic environment.
-
-Reliability priorities:
-- preserve working BLE behavior while adding features
-- observability before abstraction
-- retain raw evidence when higher-level decode fails
-- correct connection-scoped GATT ownership/disposal
-- deterministic tests where possible
-- bounded UI/log/network histories and queues
-- never present UI-only fake functionality
-- do not rewrite stable BLE connection code merely for style
-- no competing CCCD subscription when an existing qualified event path can be observed
-- all GATT reads/writes/CCCD operations serialize through the shared gate where required
-- never reuse stale GATT wrappers after reconnect
-
-
-======================================================================
-2. SOURCE OF TRUTH / BUILD RULES
+3. SOURCE CONTROL / BUILD RULES
 ======================================================================
 
 Canonical source:
     https://github.com/erkanz/ble-terminal
-Branch:
+Canonical accepted branch:
     main
 
-Rules for every new chat/work session:
-1. read ROADMAP.txt from main
-2. inspect current source tree
-3. inspect newest GitHub Actions result
-4. identify first unfinished implementation task and all still-open validation gates
-5. continue from GitHub main, not from an old ZIP
-6. do not ask the user to re-explain architecture already recorded here
-7. if chat history conflicts with GitHub main, GitHub main wins unless the user explicitly says otherwise
-
-Normal development workflow:
-- edit/commit source directly in GitHub repository
-- use temporary development branch/PR only when useful for validation
-- final accepted source must be on main
-- GitHub Actions is authoritative Windows build
-- do not use ZIP-package handoff as primary source control
+Rules:
+- GitHub main is the source of truth.
+- GitHub Actions on Windows is the release/build authority.
+- Do not return to ZIP handoff as the normal workflow.
+- Temporary branches/PRs are allowed for validation.
+- Final accepted source must be merged to main.
+- Never claim an EXE exists before Actions actually produces it.
+- Never infer radio RF success or OEM-command acceptance from GATT success.
+- Never call a hardware behavior tested unless a real hardware test was performed.
 
 Authoritative workflow:
     Actions -> Build Windows EXE
-
-Expected artifact contents:
-    BLESerialTerminal.exe
-    BLESerialTerminal.exe.sha256
 
 Publish contract:
 - win-x64
 - self-contained
 - single-file
-- no separate .NET runtime required
+- no separate .NET runtime installation required
 
-Tagged releases:
-- tags matching v* run the same build
-- EXE + SHA-256 attached to GitHub Release
+Expected artifact:
+    BLESerialTerminal.exe
+    BLESerialTerminal.exe.sha256
 
-Local Windows helper:
-    PUBLISH_SINGLE_EXE_WIN64.bat
-
-Historical Ubuntu cross-build helpers may remain for debugging/compatibility only.
-GitHub Actions on Windows is release authority.
-
-
-======================================================================
-3. MANDATORY PHASE WORKFLOW
-======================================================================
-
-STEP 1 - BASELINE
-- read ROADMAP and relevant phase/checklist files
-- inspect current main commit and newest CI
-- never assume chat text is newer than repository state
-
-STEP 2 - IMPLEMENTATION
-- make the smallest coherent architecture change
-- preserve generic BLE-UART, NUS, HM-10, RT-950, manual UUID mode and Inspector
-- preserve connection-scoped cached GATT ownership
-- do not create competing BLE subscriptions if an existing notification event path can be observed
-- all GATT writes/descriptors use the shared serialization gate where appropriate
-- bounded queues/histories are mandatory for sustained traffic features
-
-STEP 3 - AUTOMATED VERIFICATION
-At minimum:
-- existing static regression checks PASS
-- phase-specific static checks PASS when present
-- phase-specific unit/integration tests PASS
-- dotnet restore PASS
-- Windows publish PASS
-- EXE produced
-- SHA-256 produced
-- artifact upload PASS
-
-STEP 4 - HARDWARE / FUNCTIONAL VERIFICATION
-When BLE/GATT/radio/runtime behavior is involved:
-- create/update explicit checklist
-- distinguish CODE COMPLETE / CI COMPLETE / HARDWARE TEST PENDING / COMPLETE
-- CI success alone is never hardware success
-- successful GATT operation is not proof of RF transmission
-
-STEP 5 - DOCUMENTATION
-For user-facing work:
-- README updated
-- phase/test checklist created or updated
-- ROADMAP updated
-- exact CI run/artifact/hash recorded when useful
-
-STEP 6 - COMPLETION
-Before marking COMPLETE:
-- source is on main
-- CI is green
-- required runtime/hardware gates pass
-- no known regression remains
-- ROADMAP status and completion record are updated
+Tagged builds:
+- v* tag runs the same workflow
+- EXE + SHA-256 are attached to GitHub Release
 
 
 ======================================================================
@@ -206,45 +169,44 @@ NOT STARTED
     No implementation started.
 
 IN PROGRESS
-    Implementation actively changing.
+    Source is actively changing.
 
 CODE COMPLETE
-    Source implementation complete; CI or runtime validation remains.
+    Implementation is present but CI has not yet passed.
 
 CI COMPLETE
-    Automated/Windows CI verification green.
+    Required static/unit/integration tests and authoritative Windows build are green.
 
-HARDWARE TEST PENDING
-    Build green but required BLE/device/runtime validation remains.
+HARDWARE TEST PENDING / RUNTIME TEST PENDING
+    CI is green but real BLE/device/UI/external-client behavior still needs validation.
 
 COMPLETE
-    Implementation + CI + required functional/hardware checks passed.
+    Implementation + CI + all required functional/hardware gates passed.
 
 BLOCKED
-    Cannot proceed without a concrete external dependency/test/result.
+    A concrete external dependency or real-device result is required before continuing.
 
 
 ======================================================================
-5. NON-NEGOTIABLE BLE/GATT BASELINE
+5. NON-NEGOTIABLE BLE / GATT BASELINE
 ======================================================================
 
-GENERIC BLE-UART
-- Auto Detect remains supported
-- Nordic UART Service remains supported
-- HM-10 FFE0/FFE1 remains supported
-- generic UART-style GATT remains supported
-- manual Custom UUID mode remains supported
+GENERIC BLE UART
+- Auto Detect must remain supported.
+- Nordic UART Service must remain supported.
+- HM-10 FFE0/FFE1 must remain supported.
+- generic UART-style GATT must remain supported.
+- manual Custom UUID mode must remain supported.
 
-RT-950 PRO BASELINE
-Expected qualified profile:
+RT-950 QUALIFIED PROFILE
 - service FFE0
 - write FFE1
 - notify FFE1
-- same characteristic may be RX and TX
-- profile RADTEL_RT950_KISS only when device/signature logic matches
-- HM-10 must not be called RT-950 merely because FFE0/FFE1 exists
+- write and notify may be the same characteristic
+- profile RADTEL_RT950_KISS only when device/signature detection matches
+- ordinary HM-10 must not be labeled RT-950 solely because it uses FFE0/FFE1
 
-Expected readiness chain:
+Qualified readiness chain:
     BLE CONNECTED
     -> SERVICES DISCOVERED
     -> FFE1 FOUND
@@ -254,592 +216,388 @@ Expected readiness chain:
     -> RADTEL KISS READY
     -> RAW BLE NOTIFICATION
 
-GATT CACHE / OWNERSHIP
-- Auto Detect retains selected GattDeviceService
-- retains write and notify characteristics
-- retains complete characteristic list for selected service
-- cached wrappers are connection-scoped only
-- reconnect creates fresh wrappers
-- Inspector reuses cached Auto Detect FFE0 objects when applicable
-- Inspector must not issue second cached FFE0 GetCharacteristicsAsync merely to redraw tree
-- Inspector must not dispose Auto Detect-owned live objects
-- duplicate non-owned wrappers may be disposed safely
+GATT OWNERSHIP / CACHE
+- Auto Detect retains the selected GattDeviceService.
+- It retains write and notify characteristics.
+- It retains the full selected-service characteristic list.
+- wrappers are connection-scoped only.
+- reconnect creates fresh wrappers.
+- Inspector reuses qualified cached Auto Detect objects when applicable.
+- Inspector must not perform a second FFE0 characteristic enumeration merely to redraw
+  a cached RT-950 tree.
+- Inspector must not dispose Auto Detect-owned live objects.
+- duplicate/non-owned wrappers may be disposed safely.
 
 CCCD / NOTIFY
-- attach ValueChanged before CCCD enable
-- avoid duplicate handler attachment
-- use result-bearing CCCD API
-- log real communication/protocol status
-- only Success marks notify active
-- if RT-950 CCCD fails, keep connection available for Inspector diagnostics
-- active cached FFE1 subscription should be reused rather than blindly rewritten
+- attach ValueChanged before enabling CCCD.
+- avoid duplicate handler attachment.
+- use result-bearing CCCD API.
+- log real GattCommunicationStatus / protocol error where available.
+- only Success marks notify active.
+- active cached FFE1 subscription should be reused instead of blindly rewritten.
 
 GATT SERIALIZATION
-- main terminal and Inspector share one _gattOperationGate
-- discovery/read/write/CCCD operations do not race independently
-- manual command queue serializes rapid writes
-- KISS TCP bridge TX also uses _gattOperationGate
-- notification callbacks must not be blocked by the gate
+- main terminal and Inspector share the main _gattOperationGate.
+- manual main TX is serialized through its TX queue/gate.
+- KISS TCP bridge TX uses the main GATT serialization gate.
+- Phase H compare sessions each own an independent GATT serialization gate and TX gate.
+- notification callbacks must not block on a global shared gate.
+- stale route/wrapper identity must be revalidated after waiting for a gate.
 
-RAW / KISS
-- raw notification evidence precedes protocol parsing
-- source characteristic, byte count and HEX remain observable
-- fragmented BLE notifications preserve KISS stream state
-- repeated FEND and FESC/TFEND/TFESC remain supported
-- malformed/non-KISS bytes remain visible
-- TCP transport boundaries are never treated as KISS frame boundaries
+RAW / PROTOCOL
+- raw BLE notification evidence must remain visible before higher-layer parsing.
+- layered decode is additive:
+      RAW BLE -> KISS -> AX.25 -> APRS
+- a higher-layer decode failure must never erase lower-layer raw evidence.
+- KISS state must survive BLE notification fragmentation.
+- repeated FEND and FESC/TFEND/TFESC remain supported.
+- malformed/non-KISS bytes remain observable.
+- TCP packet boundaries are never treated as KISS frame boundaries.
 
-GATT INSPECTOR
-Must preserve:
-- services/characteristics/descriptors
-- short + normalized UUIDs
-- property flags
-- manual Read/Write
-- Notify/Indicate enable/disable
-- multiple notification-capable characteristics
-- CCCD result logging
-- source/reused/ownership metadata
-- cached FFE0/FFE1 reuse
-- Snapshot / Compare workflow must observe existing discovered/cache state without taking ownership of live Auto Detect objects
-
-TERMINAL/UI BASELINE
-- full dark mode + dark scrollbars
+UI BASELINE
+- dark mode and dark scrollbars
 - configurable terminal foreground/background
 - File / View / Settings / About menus
-- Export Log
-- LF default
-- Local echo default OFF
+- LF default line ending
+- Local Echo default OFF
 - Enter-to-send
-- transparent multi-resolution icon
-- decoded AX.25/APRS details available in dedicated window, not injected into serial output
+- decoded AX.25/APRS details stay in dedicated decoded view rather than flooding serial output
 
 
 ======================================================================
-6. DIAGNOSTIC / PROTOCOL PRINCIPLES
+6. MANDATORY DEVELOPMENT WORKFLOW
 ======================================================================
 
-Layering is additive:
-    RAW BLE -> KISS -> AX.25 -> APRS
+STEP 1 - BASELINE
+- read this ROADMAP and relevant checklist
+- inspect main commit
+- inspect newest Actions result
+- reconcile repository state before coding
 
-A higher-layer failure must not remove lower-layer evidence.
+STEP 2 - IMPLEMENTATION
+- make the smallest coherent change
+- preserve generic BLE/NUS/HM10/RT950/Custom behavior
+- preserve connection-scoped GATT ownership
+- avoid competing CCCD subscriptions when an existing qualified path can be observed
+- use bounded histories/queues for sustained traffic features
 
-Diagnostics should distinguish:
-- connection lifecycle
-- service/characteristic discovery
-- descriptor/CCCD operations
-- Auto Detect decisions
-- cached vs fresh/reused objects
-- GATT status / protocol error / HRESULT when available
-- raw notifications
-- raw writes
-- KISS frame boundaries
-- AX.25/APRS decode results
-- TX operations
-- TCP listener/client/backpressure state
-- disconnect/reconnect cleanup
+STEP 3 - AUTOMATED VERIFICATION
+At minimum:
+- existing static regression PASS
+- phase-specific static checks PASS
+- phase-specific tests PASS
+- dotnet restore PASS
+- Windows publish PASS
+- EXE and SHA-256 produced
+- artifact upload PASS
 
-Prefer shared event observation over competing BLE subscriptions.
-Notification monitoring, structured logging, capture/replay, GATT snapshots, protocol parsing,
-and KISS TCP forwarding should observe the same connection data without owning duplicate CCCD subscriptions.
+STEP 4 - RUNTIME / HARDWARE
+For BLE/GATT/radio/runtime behavior:
+- use explicit checklist
+- distinguish CI success from hardware success
+- successful GATT operation is not proof of RF TX
 
-Windows GATT write result semantics:
-- WRITE START RESULT=ACCEPTED means WinRT accepted creation/submission of async GATT work
-- WRITE COMPLETE reports real GattWriteResult status / numeric status / protocol error when available
-- WRITE SUBMITTED NO_RESPONSE means the characteristic write type intentionally does not require ATT response
-- none of these messages proves RF transmission or OEM command acceptance
+STEP 5 - DOCUMENTATION
+- README updated for user-facing functionality
+- checklist created/updated
+- ROADMAP updated
+- relevant exact run/artifact/hash recorded
+
+STEP 6 - MERGE / COMPLETION
+- validated development work merges to main
+- main build must be green
+- do not call COMPLETE while required real-device tests remain open
 
 
 ======================================================================
-7. PHASE ROADMAP
+7. PHASE STATUS / COMPLETION GATES
 ======================================================================
 
-----------------------------------------------------------------------
-PHASE A - v13 HARDWARE QUALIFICATION + BASELINE FREEZE
+PHASE A - RT-950 BASELINE
 STATUS: COMPLETE
-----------------------------------------------------------------------
-
-Validated on real RT-950 hardware:
+-------------------------
+Real RT-950 verified:
 [x] Auto Detect RADTEL_RT950_KISS
-[x] FFE0 service / FFE1 write+notify
-[x] ValueChanged handler attachment
+[x] FFE0 / FFE1 shared write+notify
+[x] handler attachment before CCCD
 [x] CCCD Success before READY
-[x] real FFE1 raw notifications
-[x] fragmented BLE notifications -> complete KISS frames
+[x] real raw FFE1 notifications
+[x] fragmented notifications -> valid KISS frames
 [x] Inspector cached FFE0/FFE1 reuse
-[x] cached FFE0 second enumeration avoided
+[x] no second cached FFE0 enumeration
 [x] active FFE1 CCCD reuse
-[x] Inspector refresh/close followed by real APRS RX
-
-Not reproduced/requalified in that session:
-- forced CCCD failure recovery
-- AccessDenied failure path
-- NUS/ESP32/HM-10/manual Custom UUID secondary hardware
+[x] Inspector open/refresh/close followed by working APRS RX
 
 Evidence:
 - RT950_TEST_CHECKLIST.txt
 - PHASE_A_RT950_SESSION_2026-09-06.txt
-- build runs 34013751226 / 34013824529
 
 
-----------------------------------------------------------------------
-PHASE B - KISS / AX.25 / APRS DECODER
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
-
-Implementation / CI:
-[x] stream-safe structured KISS model
-[x] repeated FEND handling
-[x] FESC/TFEND/TFESC handling
-[x] fragmented KISS across BLE notifications
-[x] multiple KISS frames per notification
-[x] malformed escape warning with raw preservation
-[x] AX.25 destination/source/SSID/path/H-bit/control/PID/frame type/information
-[x] no false rejection solely because KISS payload lacks HDLC FCS
-[x] APRS position/timestamp/message/ACK-REJ/status/object/item/telemetry/weather/Mic-E/third-party/unknown handling
-[x] dedicated decoded packet window with raw and parsed details
-[x] AX.25/APRS summaries not injected into serial output
-[x] copy/export
+PHASE B - KISS / AX.25 / APRS
+STATUS: CI COMPLETE / HARDWARE TEST PENDING
+------------------------------------------------
+Implemented:
+[x] stream-safe KISS parser
+[x] fragmented/multiple frame handling
+[x] malformed escape visibility
+[x] AX.25 source/destination/path/control/PID/frame decoding
+[x] KISS frames without HDLC FCS accepted as normal
+[x] APRS type decoding with raw information retention
+[x] dedicated decoded packet window
 [x] bounded decoded history
-[x] protocol automated tests PASS - 40 checks
+[x] Protocol tests PASS - 40
 
-Remaining completion gate:
-[ ] real RT-950 packet appears correctly in decoded AX.25/APRS window
-[ ] source/destination/path/type/summary verified on hardware
-[ ] raw KISS/APRS evidence preserved for same event
+Remaining:
+[ ] verify real RT-950 source/destination/path/type/summary in decoded window
+[ ] verify same event still has raw KISS/APRS evidence
 
-Checklist:
-    PHASE_B_TEST_CHECKLIST.txt
+Checklist: PHASE_B_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE C - NOTIFICATION MONITOR
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
-
-Implementation / CI:
-[x] independent notification event store
-[x] timestamp + monotonic sequence
-[x] device/service/characteristic/source/reused/delivery metadata
-[x] byte length + HEX + ASCII-safe rendering
-[x] KISS-frame count where applicable
+STATUS: CI COMPLETE / HARDWARE TEST PENDING
+------------------------------------------------
+Implemented:
+[x] bounded independent notification event store
+[x] sequence/timestamp/device/service/characteristic metadata
+[x] HEX + ASCII-safe rendering
 [x] total/per-characteristic counters
 [x] pause display while capture continues
-[x] resume from retained history
-[x] clear/copy/export
-[x] virtualized bounded UI
-[x] independent main FFE1 observation without additional CCCD write
-[x] Inspector multi-characteristic feeds monitor when subscribed
-[x] cached Auto Detect FFE1 duplicate-count guard
-[x] notification failures isolated from BLE RX
-[x] notification tests PASS - 15 checks
+[x] Inspector subscribed characteristics can feed monitor
+[x] duplicate Auto Detect FFE1 counting guarded
+[x] Notification tests PASS - 15
 
-Remaining completion gate:
-[ ] real RT-950 FFE1 rows verified
-[ ] pause leaves counters/capture running
-[ ] resume displays backlog
-[ ] Inspector open/close does not duplicate/break FFE1 path
-[ ] sustained traffic remains stable
+Remaining:
+[ ] real RT-950 FFE1 monitor test
+[ ] pause/resume/backlog test
+[ ] Inspector open/close no duplicate/break test
+[ ] sustained traffic stability test
 
-Checklist:
-    PHASE_C_TEST_CHECKLIST.txt
+Checklist: PHASE_C_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE D - LOG FILTERS / SEARCH
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
+STATUS: CI COMPLETE / RUNTIME TEST PENDING
+--------------------------------------------
+Implemented:
+[x] bounded structured log
+[x] CONNECTION/DISCOVERY/GATT/CCCD/RX_RAW/TX_RAW/KISS/AX25/APRS/etc categories
+[x] text/category/device/characteristic/direction filters
+[x] errors/warnings-only
+[x] previous/next search navigation
+[x] full/filtered export
+[x] binary raw RX/TX payload retention
+[x] Log Filter tests PASS - 14
 
-Implementation / CI:
-[x] bounded structured LogStore (50,000 retained entries)
-[x] categories CONNECTION/DISCOVERY/GATT/CCCD/RX_RAW/TX_RAW/KISS/AX25/APRS/INSPECTOR/WARNING/ERROR
-[x] free-text search
-[x] category/device/characteristic/RX-TX filters
-[x] errors/warnings-only filter
-[x] clear active filters without erasing underlying log
-[x] filtered-result count
-[x] Previous/Next navigation
-[x] match selection/highlight behavior
-[x] navigation disables Auto scroll
-[x] full export + filtered export
-[x] session metadata included
-[x] UTF-8 handling
-[x] virtualized/bounded visible results
-[x] RX_RAW sourced from notification capture path instead of duplicate terminal rendering
-[x] successful TX_RAW capture independent of Local Echo
-[x] binary raw payload retained in structured log
-[x] log/filter tests PASS - 14 checks
+Remaining:
+[ ] live RT-950 structured log/filter/export test
+[ ] verify one FFE1 event -> one RX_RAW structured record
+[ ] verify failed TX is not logged as successful TX_RAW
 
-Remaining runtime gate:
-[ ] real RT-950 structured live log verified
-[ ] one FFE1 notification produces one RX_RAW structured record
-[ ] KISS/AX25/APRS filters verified with real packet
-[ ] successful TX_RAW verified with Local Echo OFF
-[ ] failed TX does not become successful TX_RAW
-[ ] combinations/navigation/export verified during live RX
-[ ] disconnect/reconnect verified
-[ ] sustained traffic does not disturb Phase A/B/C paths
-
-Checklist:
-    PHASE_D_TEST_CHECKLIST.txt
+Checklist: PHASE_D_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE E - SESSION CAPTURE / OFFLINE REPLAY
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
+STATUS: CI COMPLETE / HARDWARE TEST PENDING
+------------------------------------------------
+Implemented:
+[x] versioned session JSON
+[x] binary RX/TX event retention
+[x] GATT/profile/session metadata
+[x] safe unknown-field/future-version handling
+[x] per-characteristic replay KISS state
+[x] offline RAW RX -> KISS -> AX.25 -> APRS
+[x] captured TX never transmitted during replay
+[x] Play/Pause/Step/Reset/speed
+[x] Session tests PASS - 19
 
-Purpose:
-Make BLE failures reproducible offline and permit parser/UI development without live radio each time.
-
-Implementation / CI:
-[x] documented versioned JSON session format
-[x] application/session metadata
-[x] start/end timestamps
-[x] device identity and BLE address where available
-[x] Auto Detect profile and selected GATT mapping
-[x] relevant characteristic metadata/properties
-[x] connection/GATT/CCCD/diagnostic structured events via LogStore
-[x] binary RX/TX payload bytes stored independently of terminal text
-[x] source characteristic retained
-[x] KISS/AX.25/APRS diagnostic events retained
-[x] load/save round trip
-[x] unknown JSON fields safely ignored
-[x] malformed file fails gracefully
-[x] unsupported future version rejected explicitly
-[x] per-characteristic replay KISS stream state
-[x] captured RX_RAW replayed through KISS -> AX.25 -> APRS
-[x] captured TX never replayed into live BLE
-[x] Play/Pause/Step/Reset/speed controls
-[x] replay UI clearly marks BLE TX disabled
-[x] replay/live capture separation
-[x] Session tests PASS - 19 checks
-[x] current manual GATT override reflected separately from Auto Detect baseline mapping
-
-Remaining completion gate:
-[ ] capture one real RT-950 session
-[ ] save session file
-[ ] disconnect/disable BLE as appropriate
-[ ] load same session offline
-[ ] replay reproduces expected KISS/AX.25/APRS result
-[ ] no BLE TX occurs during replay
+Remaining:
+[ ] capture/save real RT-950 session
+[ ] load/replay offline
+[ ] confirm same decoded result and zero live BLE TX
 
 
-----------------------------------------------------------------------
-USER-PRIORITY FEATURE - RT950 MANUAL GATT TX DIAGNOSTICS
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
-
-Purpose:
-Directly compare RT-950 host-to-radio write paths on FFE1 and FF31 while keeping the
-known-working FFE1 Notify/KISS RX path active.
-
-Implementation / CI:
-[x] Auto Detect remains authoritative baseline
-[x] retained service displayed (RT950 FFE0)
-[x] Notify and Write selectors populated from retained service characteristic list
-[x] FFE1/FF31 selectable only when actually present
-[x] real characteristic properties logged; FF31 not hard-coded writable
+RT950 MANUAL GATT TX DIAGNOSTICS
+STATUS: CI COMPLETE / HARDWARE TEST PENDING
+------------------------------------------
+Implemented:
+[x] manual FFE1/FF31 route selection from retained service list
+[x] real characteristic property inspection
 [x] With Response / Without Response
-[x] unsupported selected write type explicitly blocked
-[x] selecting FF31 TX does not intentionally disable FFE1 notification
-[x] manual override does not mutate AutoDetectedGattContext baseline mapping
-[x] shared _gattOperationGate used
-[x] rapid command writes serialized via SerialTaskQueue
-[x] each queued request freezes payload/route/connection context
-[x] no payload concatenation
-[x] detailed RAW BLE WRITE + status/protocol error logs
-[x] FFE1 single-byte 06 helper
-[x] HEX + NONE exact byte behavior
-[x] RT950 OEM TEST and RT950 FFE1 TEST presets
-[x] presets never auto-send
+[x] unsupported write type blocked
+[x] manual route does not mutate Auto Detect baseline
+[x] serialized rapid command queue
+[x] exact HEX + NONE behavior
 [x] 1-5 persistent command rows
-[x] Manual RT950 GATT TX tests PASS - 13 checks
+[x] RT950 OEM and FFE1 presets never auto-send
+[x] Manual TX tests PASS - 13
 
-Required real RT-950 validation:
-[ ] actual FFE1/FF31 property flags captured
-[ ] OEM 14-byte write to FF31 attempted and real status recorded
-[ ] any FFE1 response recorded; 06 helper confirmed if returned
-[ ] same 14-byte payload written separately to FFE1 and status compared
-[ ] FFE1 KISS RX still works afterward
-[ ] rapid Send 1..5 verified on real device
-[ ] persistence verified across restart
+Remaining:
+[ ] capture actual FF31/FFE1 properties on RT-950
+[ ] attempt exact 14-byte OEM write to FF31 and FFE1 separately
+[ ] record real status/response
+[ ] confirm normal FFE1 KISS RX afterward
 
-Checklist:
-    RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt
+Checklist: RT950_MANUAL_GATT_TX_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE F - GATT SNAPSHOT / COMPARE
-STATUS: HARDWARE TEST PENDING
-----------------------------------------------------------------------
+STATUS: CI COMPLETE / HARDWARE TEST PENDING
+------------------------------------------
+Implemented:
+[x] versioned structured GATT snapshots
+[x] services/characteristics/descriptors/properties/status
+[x] source/cache/ownership metadata
+[x] Auto Detect mapping separated from manual route
+[x] TXT/JSON export and deterministic A/B compare
+[x] Inspector capture reuses existing discovered/cache state
+[x] Phase F static PASS - 14
+[x] GATT Snapshot tests PASS - 18
 
-Implementation / CI COMPLETE:
-[x] versioned structured snapshot format
-[x] device/session metadata
-[x] services / characteristics / descriptors
-[x] short/full normalized UUIDs
-[x] characteristic properties
-[x] cached/reused/source/ownership metadata
-[x] service + descriptor discovery status evidence
-[x] Auto Detect service/write/notify mapping
-[x] manual route captured separately from baseline Auto Detect mapping
-[x] human-readable TXT export
-[x] structured JSON save/reload
-[x] deterministic A/B compare
-[x] added/removed service detection
-[x] added/removed characteristic detection
-[x] descriptor changes
-[x] property changes
-[x] discovery/access status changes
-[x] cache/ownership changes
-[x] Auto Detect mapping changes
-[x] manual-route changes
-[x] Inspector capture reuses current discovered/cache objects rather than competing BLE ownership
-[x] Phase F static checks PASS - 14
-[x] GATT snapshot tests PASS - 18
-[x] Windows CI run 34019273197 PASS
+Remaining:
+[ ] real RT-950 Capture A/B
+[ ] expected manual FF31/state difference visible without baseline mutation
+[ ] ordinary FFE1 RX still works afterward
 
-RT950 use cases:
-- successful FFE0/FFE1 session vs AccessDenied/partial session
-- before/after settings or firmware changes
-- RT950 vs HM-10 signature
-- FFE0 characteristic property differences including FF31/FF32/FFE1
-- Auto Detect FFE1 baseline vs temporary manual FF31 route
-
-Remaining completion gate:
-[ ] real RT-950 Capture A succeeds
-[ ] manual FF31 route / state change captured as B without mutating Auto Detect baseline
-[ ] A/B compare shows expected route/state difference
-[ ] ordinary FFE1 KISS RX still works after snapshot operations
-[ ] save/load/export exercised on real runtime snapshot
-
-Checklist:
-    PHASE_F_TEST_CHECKLIST.txt
+Checklist: PHASE_F_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE G - KISS TCP BRIDGE
-STATUS: CODE COMPLETE / CI VALIDATION IN PROGRESS / HARDWARE TEST PENDING
-----------------------------------------------------------------------
-
-Purpose:
-Expose the connected BLE KISS transport as a safe local TCP KISS endpoint for APRS/KISS clients.
-
-G1 - LISTENER / SECURITY
+STATUS: CI COMPLETE / HARDWARE + EXTERNAL CLIENT TEST PENDING
+-------------------------------------------------------------
+Implemented and merged to main:
 [x] bridge OFF by default
-[x] opening bridge window does not start listener
-[x] default bind 127.0.0.1
-[x] default port 8001
-[x] 0.0.0.0 / LAN binding requires explicit selection and Yes confirmation
-[x] closing bridge window stops listener
+[x] localhost 127.0.0.1:8001 default
+[x] LAN/all-interface bind requires explicit confirmation
+[x] closing window stops listener
+[x] BLE RX observed from existing qualified notification path
+[x] no second CCCD subscription
+[x] raw BLE bytes fan out unchanged to TCP clients
+[x] raw TCP stream bytes write unchanged to BLE route
+[x] transport KISS decoders diagnostic-only
+[x] bounded per-client queue; backpressured client disconnected
+[x] Auto Detect baseline route wins over temporary RT950 FF31 diagnostic route
+[x] GATT write serialized and route revalidated
+[x] BLE disconnect/context replacement closes stale TCP clients
+[x] Phase G static PASS - 25
+[x] KISS TCP Bridge tests PASS - 25
+[x] main run 34020712099 PASS
 
-G2 - BLE RX -> TCP
-[x] observes NotificationCaptureHub existing qualified main notification path
-[x] no second CCCD write/subscription
-[x] Inspector-only notification records excluded from duplicate bridge traffic
-[x] raw BLE notification bytes forwarded unchanged to each TCP client
-[x] BLE notification boundaries not treated as KISS frame boundaries
-[x] independent KISS decoder used only for diagnostics/frame counters
-[x] multiple clients supported
+Remaining:
+[ ] real RT-950 reaches RADTEL KISS READY
+[ ] real local KISS TCP client RX from radio
+[ ] TCP KISS TX reaches baseline BLE FFE1
+[ ] radio/RF effect verified separately when expected
+[ ] manual FF31 UI selection does not redirect bridge
+[ ] BLE reconnect lifecycle verified with real client
 
-G3 - TCP -> BLE
-[x] raw TCP stream bytes forwarded unchanged to BLE writer
-[x] TCP packet boundaries not treated as KISS frame boundaries
-[x] Auto Detect baseline Write characteristic preferred when available
-[x] temporary RT950 FF31 diagnostic route does not redirect bridge KISS TX
-[x] manual Custom GATT profile can use its current write characteristic when no Auto Detect context exists
-[x] shared _gattOperationGate used
-[x] GATT route revalidated after gate acquisition
-[x] stale connection/characteristic context rejected
-[x] result-bearing GATT write API used
-[x] successful bridge writes stored as structured TX_RAW
-[x] main TX counters updated only after successful GATT writes
-
-G4 - LIFECYCLE / BACKPRESSURE
-[x] bounded per-client BLE->TCP send queue
-[x] no unbounded client buffering
-[x] slow/full queue client disconnected with counter/warning
-[x] BLE unavailable state suspends forwarding
-[x] BLE disconnect closes active TCP clients
-[x] connection-key change closes stale TCP clients
-[x] reconnect uses fresh current GATT context
-[x] listener can remain running while BLE forwarding is suspended
-
-G5 - UI / DIAGNOSTICS
-[x] View -> KISS TCP Bridge... installed
-[x] endpoint state
-[x] BLE ready/suspended state
-[x] client count
-[x] BLE->TCP bytes + KISS frame count
-[x] TCP->BLE bytes + KISS frame count
-[x] BLE written byte count
-[x] rejected write count
-[x] malformed frame count
-[x] backpressure disconnect count
-[x] bounded/virtualized event list
-
-G6 - AUTOMATED TESTS
-[x] Phase G static architecture checker added
-[x] loopback TCP test project added
-[x] tests cover localhost start, raw BLE->TCP, raw TCP->BLE, fragmented KISS diagnostics,
-    multi-client fanout, reconnect context isolation, BLE-disconnect client cleanup, listener stop
-[ ] final Phase G Windows CI run PASS
-[ ] final Windows EXE/artifact generated from main
-
-Required real hardware/external-client validation:
-[ ] RT950 connects and reaches RADTEL KISS READY
-[ ] bridge starts on 127.0.0.1:8001
-[ ] local KISS client connects
-[ ] real RT950 BLE KISS RX reaches TCP client unchanged
-[ ] TCP client KISS TX reaches BLE FFE1 through baseline Auto Detect route
-[ ] actual radio-side/RF effect verified separately when expected
-[ ] selecting RT950 manual FF31 diagnostic route does not redirect bridge traffic
-[ ] BLE disconnect closes TCP client and shows SUSPENDED
-[ ] reconnect permits a new client using fresh BLE context
-[ ] Inspector / Notification Monitor / ordinary KISS RX remain stable
-
-Checklist:
-    PHASE_G_TEST_CHECKLIST.txt
-
-Completion rule:
-Do not mark Phase G COMPLETE until both final Windows CI and real external-client/hardware tests pass.
+Checklist: PHASE_G_TEST_CHECKLIST.txt
 
 
-----------------------------------------------------------------------
 PHASE H - MULTI-DEVICE LIVE COMPARE
-STATUS: NOT STARTED
-----------------------------------------------------------------------
+STATUS: CI COMPLETE ON PR / TWO-DEVICE RUNTIME TEST PENDING
+----------------------------------------------------------
+Branch:
+    phase-h-multi-device-compare
+PR:
+    #2
 
-Purpose:
-Compare more than one live device/session without state leakage.
+Implemented:
+[x] View -> Multi-Device Live Compare...
+[x] BLE advertisement scan with device name/address/RSSI/last-seen
+[x] filter discovered devices
+[x] up to four live compare sessions
+[x] each session owns its own BluetoothLEDevice
+[x] each session owns its own GattDeviceService/write/notify wrappers
+[x] each session owns its own GATT SemaphoreSlim
+[x] each session owns its own TX serialization gate
+[x] each session owns its own CCCD subscription state
+[x] each session owns its own KissStreamDecoder
+[x] each session owns independent notification/RX/KISS/AX25/APRS/TX counters
+[x] per-session connection generation prevents stale queued TX route reuse
+[x] disconnect clears connection-scoped wrappers
+[x] RT-950/NUS/HM10/generic BLE-UART Auto Detect logic for compare sessions
+[x] per-session selected KISS HEX TX
+[x] A/B state comparison view
+[x] compare fields include identity/profile/GATT/CCCD/counters/last decoded packet/error
+[x] compare window cleanup disposes every compare session
+[x] session grid virtualized
+[x] Phase H static PASS - 22
+[x] Multi-Device Compare model tests PASS - 15
+[x] PR Windows build run 34037557327 PASS
 
-Architecture requirement:
-Each device connection owns independent:
-- BluetoothLEDevice/context
-- AutoDetectedGattContext
-- GATT operation gate
-- notification subscriptions
-- KISS stream state
-- counters
-- session/log identity
-- TX queue/routing context
-- TCP bridge association if exposed for that device
+Architecture rule:
+No live characteristic/service/device wrapper, GATT gate, TX gate, KISS decoder or
+counter from compare Device A may be used by compare Device B. The normal MainWindow
+single-device connection remains a separate ownership domain.
 
-No characteristic wrapper from Device A may be reused for Device B.
-Single-device mode must not regress.
+Remaining before Phase H can be COMPLETE:
+[ ] merge latest validated PR head to main
+[ ] authoritative main Actions build PASS
+[ ] connect two real devices simultaneously
+[ ] A-only RX changes A only
+[ ] B-only RX changes B only
+[ ] TX selected for A never writes B and vice versa
+[ ] disconnect/reconnect one device does not disturb the other
+[ ] normal single-device MainWindow remains functional before/during/after compare use
+[ ] compare window close leaves no stale live subscriptions/wrappers
 
-Planned UI/functions:
-- connect two or more supported BLE devices
-- side-by-side device identity/profile/GATT state
-- per-device notification/KISS/AX.25/APRS counters
-- independent raw streams
-- independent snapshots
-- optional synchronized comparison view
+Checklist: PHASE_H_TEST_CHECKLIST.txt
 
-Completion gate:
-- strong connection-context isolation
-- no cross-device TX/RX leakage
-- single-device regression suite green
-- Windows CI green
-- real two-device runtime test
+Important scope note:
+The current Phase H A/B comparison uses live per-session state snapshots, not a full
+second copy of the Phase F GATT-tree snapshot subsystem. A future extension may add
+per-session full GATT-tree capture/raw-stream panes if useful, but it is not evidence of
+real two-device isolation until the hardware checklist passes.
 
 
-----------------------------------------------------------------------
 PHASE I - PRODUCTION HARDENING / RELEASE
 STATUS: NOT STARTED
-----------------------------------------------------------------------
-
-I1 - RESOURCE LIFECYCLE AUDIT
-Audit:
-- disconnect/reconnect
-- app close
-- Inspector
-- Notification Monitor
-- Log Filter window
-- Session replay
-- Snapshot/Compare
-- KISS TCP bridge/listener/clients/channels
-- cancellation tokens
-- event handlers
-- CCCD/service/device/semaphore/background tasks
-
-I2 - ERROR HANDLING
-- no routine BLE failure causes unhandled UI-thread exception
-- meaningful AccessDenied/DeviceUnreachable diagnostics
-- cancellation not fatal
-- stale wrapper use detected/rejected
-- concise user error + detailed diagnostic log
-- network listener/client errors isolated from BLE path
-
-I3 - SETTINGS / RECONNECT
-May include:
-- remembered terminal colors
-- remembered line ending/local echo/window layout
-- remembered command workbench state (already implemented)
-- optional auto-reconnect with safe backoff
-- never persist live GATT wrapper objects
-- bridge remains OFF by default on new app launch unless a future explicit policy says otherwise
-
-I4 - PERFORMANCE / SOAK
-- sustained BLE notifications
-- large monitor/log/session volume
-- Inspector cycles
-- repeated connect/disconnect
-- capture during RX
-- TCP bridge during sustained RX/TX
-- multiple TCP clients
-- slow-client/backpressure behavior
-- memory growth observation
-
-I5 - RELEASE DOCUMENTATION
-- README
-- supported OS
-- limitations
-- RT950
-- Inspector
-- decoder
-- capture/replay
-- GATT snapshots
-- TCP bridge
-- checklists
-- ROADMAP final state
-
-I6 - RELEASE BUILD
-- all automated tests green
+----------------------------------------
+Planned:
+- resource lifecycle audit across all windows/transports/sessions
+- routine BLE/network failures must not crash UI thread
+- stale wrapper/cancellation/error handling audit
+- settings/reconnect policy audit
+- sustained traffic / repeated connect-disconnect soak test
+- KISS TCP slow-client/backpressure soak
+- multi-device soak after Phase H hardware qualification
+- final README/limitations/support matrix
+- all CI gates green
 - real Windows smoke test
 - SHA-256 verified
-- tag release
-- GitHub Release has EXE + SHA-256
-
-Completion gate:
-No known release-blocking defect remains.
+- v* tagged GitHub Release with EXE + SHA-256
 
 
 ======================================================================
-8. OPTIONAL / POST-CORE BACKLOG
+8. CURRENT GITHUB ACTIONS EXPECTED TEST ORDER
 ======================================================================
 
-Only after higher-priority roadmap phases unless user explicitly moves forward:
-- named device/profile presets
-- favorites/recent devices
-- richer byte visualizers
-- packet bookmarks/annotations
-- CSV notification statistics
-- throughput graphs
-- characteristic write history
-- additional canned TX macros
-- configurable timestamp format
-- keyboard shortcuts
-- portable settings export/import
-- additional BLE-UART profile signatures
-- optional TCP client allow-list / authentication for deliberate LAN deployments
-- PCAPNG-style export if useful
+After Phase H integration the authoritative workflow should include:
+1. Checkout
+2. Setup .NET 8
+3. Setup Python
+4. Prepare icon
+5. Static regression checks
+6. Phase F static checks
+7. Phase G static checks
+8. Phase H isolation static checks
+9. Protocol tests
+10. Notification tests
+11. Log Filter tests
+12. Session tests
+13. Manual RT950 TX tests
+14. GATT Snapshot tests
+15. KISS TCP Bridge tests
+16. Multi-Device Compare tests
+17. restore
+18. publish self-contained win-x64 single EXE
+19. verify EXE and generate SHA-256
+20. upload artifact
+21. release step on v* tag
 
-Priority order unless user overrides:
-current hardware validation gates
--> finish Phase G CI/hardware validation
--> Phase H multi-device compare
--> Phase I production hardening/release
+A phase cannot be called CI COMPLETE if a required step was skipped because an earlier
+step failed.
 
 
 ======================================================================
@@ -849,132 +607,60 @@ current hardware validation gates
 LAYER 1 - STATIC / UNIT
 - source regression guards
 - XAML parse checks
-- KISS parser tests
-- AX.25/APRS tests
+- protocol parser tests
 - notification store tests
-- log filter tests
+- structured log/filter tests
 - session serialization/replay tests
-- GATT snapshot serialization/compare tests
+- GATT snapshot tests
 - manual TX payload/queue tests
-- TCP bridge loopback/lifecycle tests
+- KISS TCP loopback/lifecycle tests
+- Phase H isolation/model tests
 
 LAYER 2 - WINDOWS CI
-- authoritative dotnet restore
-- authoritative WPF compilation
-- win-x64 self-contained single-file publish
-- EXE existence check
+- authoritative restore
+- authoritative WPF compile
+- self-contained win-x64 publish
+- EXE existence
 - SHA-256 generation
 - artifact upload
 
-LAYER 3 - FUNCTIONAL WINDOWS TEST
-When user-facing WPF behavior changes:
+LAYER 3 - FUNCTIONAL WINDOWS UI
+For user-facing changes:
 - open relevant window
-- verify controls/state transitions
-- verify no crash/dead UI
+- verify state transitions
+- verify no dead UI/crash
 - verify dark-theme compatibility where practical
 
 LAYER 4 - REAL BLE HARDWARE
-Required for BLE/GATT/CCCD/device-specific claims:
-- actual device connection
-- actual characteristic properties
-- actual notifications/writes
-- actual disconnect/reconnect behavior
+Required for BLE/GATT/device claims:
+- actual connection
+- real characteristic properties
+- real notifications/writes
+- disconnect/reconnect behavior
+- Phase H requires two simultaneous devices for isolation claims
 
 LAYER 5 - RADIO / EXTERNAL CLIENT
-Required for claims beyond BLE transport:
-- external APRS/KISS TCP client when testing Phase G
-- second receiver/radio when claiming RF TX
-- never equate ATT/GATT success with application-layer or RF success
+Required beyond BLE transport:
+- external APRS/KISS TCP client for Phase G
+- second receiver/radio for RF TX claims
+- ATT/GATT Success alone is never RF/application acceptance evidence
 
 
 ======================================================================
-10. GITHUB ACTIONS EXPECTED TEST ORDER
+10. NEXT ACTIONS FOR CONTINUATION
 ======================================================================
 
-Current expected Build Windows EXE pipeline after Phase G integration:
-1. Checkout
-2. Setup .NET 8
-3. Setup Python
-4. Prepare application icon
-5. Static regression checks
-6. Phase F GATT snapshot static checks
-7. Phase G KISS TCP bridge static checks
-8. Protocol decoder tests
-9. Notification capture tests
-10. Log filter tests
-11. Session capture replay tests
-12. Manual RT950 GATT TX tests
-13. GATT snapshot compare tests
-14. KISS TCP bridge loopback tests
-15. Restore
-16. Publish self-contained single EXE
-17. Verify EXE and generate SHA-256
-18. Upload Windows build artifact
-19. tagged release step when ref is v*
+Immediate software sequence:
+1. inspect latest PR #2 Actions run after documentation-only follow-up commits
+2. if green, mark PR ready and merge Phase H to main
+3. inspect main Actions run
+4. fix any main-only build regression if present
+5. record final main artifact/run/hash
+6. keep Phase H status HARDWARE TEST PENDING until real two-device checklist is supplied
+7. after Phase H main is stable, begin Phase I only if user wants to continue software work
 
-A phase cannot be called CI COMPLETE if any required step is skipped because of an earlier failure.
+Do not wait for old B/C/D/E/F/G hardware gates to implement unrelated software unless a
+specific phase truly depends on those results. However never call those older phases
+COMPLETE without their required real tests.
 
-
-======================================================================
-11. NEW CHAT CONTINUATION PROCEDURE
-======================================================================
-
-When this chat becomes too long, start a new chat and say:
-
-    ble-terminal projesine GitHub main ROADMAP.txt'e gore kaldigi yerden devam et.
-
-The next assistant must:
-1. open https://github.com/erkanz/ble-terminal
-2. read ROADMAP.txt from main
-3. inspect current main commit
-4. inspect newest Build Windows EXE Actions run
-5. inspect phase-specific checklist(s) for the first unfinished task
-6. preserve all non-negotiable BLE/GATT ownership rules in this file
-7. never ask the user to reconstruct prior architecture from memory if GitHub contains it
-8. continue implementation only after reconciling ROADMAP status against actual main/CI state
-9. update ROADMAP.txt again before declaring any phase COMPLETE
-
-If chat text says a phase is complete but ROADMAP/main/CI does not support it, do not assume completion.
-If ROADMAP says a hardware test is pending, do not convert it to PASS without user-provided real test evidence.
-
-
-======================================================================
-12. CURRENT HANDOFF SNAPSHOT
-======================================================================
-
-Known green main before Phase G:
-    f4ac693aa911a005cf29f5ed2420f77f8fe8882f
-    Actions run 34019273197 SUCCESS
-    Artifact 9984956587
-    EXE SHA256 cc1ca4a3a15d494c6c40e18f238b493151275b156a016303b84879088daa9224
-
-Phase G development branch at roadmap revision 5 contains:
-- KissTcpBridgeServer.cs
-- KissTcpBridgeWindow.xaml
-- KissTcpBridgeWindow.xaml.cs
-- MainWindow.KissTcpBridge.cs
-- MainWindow.Protocol.cs lifecycle hooks
-- tests/KissTcpBridgeTests/
-- tests/PHASE_G_STATIC_CHECK.py
-- PHASE_G_TEST_CHECKLIST.txt
-- updated README.md
-- updated Windows workflow with Phase G checks/tests
-
-Phase G design decisions that must not be lost:
-- OFF by default
-- localhost 127.0.0.1 by default
-- port 8001 by default
-- LAN binding requires explicit warning confirmation
-- no second BLE CCCD subscription
-- use NotificationCaptureHub for BLE RX observation
-- forward raw bytes unchanged
-- KISS decoders are diagnostic-only in transport layer
-- bounded queue per TCP client
-- disconnect slow/backpressured client instead of buffering forever
-- Auto Detect baseline write characteristic takes precedence over temporary RT950 manual FF31 route
-- TCP->BLE GATT writes use shared _gattOperationGate
-- connection/route identity revalidated after waiting for gate
-- BLE disconnect/context change closes old TCP clients
-- listener may remain active but forwarding is SUSPENDED until a qualified BLE route exists
-
-END OF ROADMAP REVISION 5
+END OF ROADMAP REVISION 6
