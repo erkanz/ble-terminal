@@ -17,6 +17,7 @@
                 <Separator/>
                 <MenuItem Header="Decoded KISS / AX.25 / APRS packets..." Click="DecodedPacketsMenuItem_Click"/>
                 <MenuItem Header="BLE Notification Monitor..." Click="NotificationMonitorMenuItem_Click"/>
+                <MenuItem Header="Diagnostic Log Filters / Search..." Click="LogFilterMenuItem_Click"/>
                 <Separator/>
                 <MenuItem Header="Serial output background..." Click="TerminalBackgroundMenuItem_Click"/>
                 <MenuItem Header="Serial output text color..." Click="TerminalForegroundMenuItem_Click"/>
