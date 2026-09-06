@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -253,7 +254,10 @@ internal static class AprsDecoder
         return new AprsPacket(category, info[0], info, string.IsNullOrEmpty(value) ? category : $"{category}: {value}", fields);
     }
 
-    private static bool TryParseUncompressedPosition(string body, out PositionResult? result, out string warning)
+    private static bool TryParseUncompressedPosition(
+        string body,
+        [NotNullWhen(true)] out PositionResult? result,
+        out string warning)
     {
         result = null;
         warning = string.Empty;

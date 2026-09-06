@@ -53,6 +53,10 @@ jobs:
         shell: pwsh
         run: python tests/PHASE_H_STATIC_CHECK.py
 
+      - name: Phase I production hardening static checks
+        shell: pwsh
+        run: python tests/PHASE_I_STATIC_CHECK.py
+
       - name: Protocol decoder tests
         shell: pwsh
         run: dotnet run --project tests/ProtocolTests/ProtocolTests.csproj -c Release
@@ -88,6 +92,15 @@ jobs:
       - name: Restore
         shell: pwsh
         run: dotnet restore BLESerialTerminal.csproj -r win-x64
+
+      - name: Compiler warnings gate
+        shell: pwsh
+        run: >-
+          dotnet build BLESerialTerminal.csproj
+          -c Release
+          -r win-x64
+          --no-restore
+          -p:TreatWarningsAsErrors=true
 
       - name: Publish self-contained single EXE
         shell: pwsh
