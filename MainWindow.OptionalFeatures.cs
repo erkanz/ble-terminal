@@ -113,7 +113,8 @@ public partial class MainWindow
         _kissMenu.Items.Add(_kissBuilderMenuItem);
         _kissMenu.Items.Add(_kissClearMenuItem);
 
-        MenuItem? settings = menu.Items.OfType<MenuItem>().FirstOrDefault(x => HeaderText(x).Equals("Settings", StringComparison.OrdinalIgnoreCase));
+        MenuItem? settings = menu.Items.OfType<MenuItem>()
+            .FirstOrDefault(x => HeaderText(x).Equals("Settings", StringComparison.OrdinalIgnoreCase));
         int insertIndex = settings != null ? menu.Items.IndexOf(settings) : Math.Max(0, menu.Items.Count - 1);
         menu.Items.Insert(insertIndex, _rt950Menu);
         menu.Items.Insert(insertIndex + 1, _kissMenu);
@@ -125,22 +126,17 @@ public partial class MainWindow
             if (oldFixedRows != null)
                 settings.Items.Remove(oldFixedRows);
 
-            var confirmRemove = NewCheckMenu("Confirm command removal", CommandRemoveConfirmationEnabled, (_, _) =>
+            var confirmRemove = new MenuItem
             {
-                if (confirmRemovePlaceholder is MenuItem item)
-                    SetCommandRemoveConfirmation(item.IsChecked);
-            });
-            // Local indirection avoids depending on a fixed XAML name; the lambda below is replaced immediately.
+                Header = "Confirm command removal",
+                IsCheckable = true,
+                IsChecked = CommandRemoveConfirmationEnabled
+            };
+            confirmRemove.Click += (_, _) => SetCommandRemoveConfirmation(confirmRemove.IsChecked);
             settings.Items.Add(new Separator());
             settings.Items.Add(confirmRemove);
-            confirmRemove.Click -= NoopMenuClick;
-            confirmRemove.Click += (_, _) => SetCommandRemoveConfirmation(confirmRemove.IsChecked);
         }
     }
-
-    // Kept solely so BuildOptionalFeatureMenus can create handlers without introducing XAML names.
-    private static readonly object? confirmRemovePlaceholder = null;
-    private static void NoopMenuClick(object sender, RoutedEventArgs e) { }
 
     private static MenuItem NewCheckMenu(string header, bool isChecked, RoutedEventHandler click)
     {
@@ -176,7 +172,7 @@ public partial class MainWindow
                 if (_ffe1CccdEnabled && _notifyCharacteristic != null && BleUuid.Is(_notifyCharacteristic.Uuid, "FFE1"))
                     _rt950UnlockState = Rt950UnlockState.Ffe1NotifyReady;
                 if (_optionalFeatureSettings.Rt950AutoUnlockOnConnect)
-                    await QueueRt950UnlockAsync("TOOLS_ENABLED_WHILE_CONNECTED");
+                    await QueueRt950UnlockAsync("AUTO_TOOLS_ENABLED");
             }
         }
         SaveOptionalFeatureSettings();
@@ -243,7 +239,7 @@ public partial class MainWindow
         {
             // Do not let auto-detected RT950 metadata turn the default application into an RT950 mode.
             _radtelKissReady = false;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
             {
                 if (_bleConnected && !_optionalFeatureSettings.Rt950ToolsEnabled)
                     SetStatus("BLE UART ready (generic terminal mode)");
@@ -299,10 +295,14 @@ public partial class MainWindow
 
     private async Task ExecuteRt950UnlockCoreAsync(string source)
     {
-        if (!TryResolveRt950Transport(requireRecognizedIdentity: source.StartsWith("AUTO", StringComparison.OrdinalIgnoreCase),
+        ulong? sessionAddress = _connectedAddress;
+        DateTime? sessionConnectedAt = _connectedAt;
+        if (!TryResolveRt950Transport(
+                requireRecognizedIdentity: source.StartsWith("AUTO", StringComparison.OrdinalIgnoreCase),
                 out GattCharacteristic? dataCharacteristic,
                 out GattCharacteristic? unlockCharacteristic,
-                out string reason))
+                out string reason) ||
+            dataCharacteristic == null || unlockCharacteristic == null)
         {
             MarkRt950UnlockFailed(reason);
             return;
@@ -333,6 +333,8 @@ public partial class MainWindow
         await _gattOperationGate.WaitAsync();
         try
         {
+            if (!IsSameConnectionSession(sessionAddress, sessionConnectedAt))
+                return;
             using var writer = new DataWriter();
             writer.WriteBytes(Rt950Protocol.UnlockFrame);
             IBuffer buffer = writer.DetachBuffer();
@@ -347,6 +349,9 @@ public partial class MainWindow
             _gattOperationGate.Release();
         }
 
+        if (!IsSameConnectionSession(sessionAddress, sessionConnectedAt))
+            return;
+
         if (writeResult?.Status != GattCommunicationStatus.Success)
         {
             MarkRt950UnlockFailed(writeResult == null ? "WRITE_EXCEPTION" : $"WRITE_STATUS_{writeResult.Status}");
@@ -356,6 +361,8 @@ public partial class MainWindow
         AppendSystemLine("RT950 UNLOCK WRITE SUCCESS");
         _rt950UnlockState = Rt950UnlockState.WaitUnlockResponse;
         Task completed = await Task.WhenAny(responseTcs.Task, Task.Delay(TimeSpan.FromSeconds(4)));
+        if (!IsSameConnectionSession(sessionAddress, sessionConnectedAt))
+            return;
         if (completed != responseTcs.Task || responseTcs.Task.IsCanceled || responseTcs.Task.IsFaulted)
         {
             MarkRt950UnlockFailed("UNLOCK_RESPONSE_TIMEOUT");
@@ -363,6 +370,9 @@ public partial class MainWindow
         }
 
         _ = await responseTcs.Task;
+        if (!IsSameConnectionSession(sessionAddress, sessionConnectedAt))
+            return;
+
         _rt950Unlocked = true;
         _rt950UnlockState = Rt950UnlockState.Ready;
         _writeCharacteristic = dataCharacteristic;
@@ -375,6 +385,10 @@ public partial class MainWindow
         UpdateOptionalFeatureMenuState();
         UpdateTxSendAvailability();
     }
+
+    private bool IsSameConnectionSession(ulong? address, DateTime? connectedAt) =>
+        _bleConnected && address.HasValue && connectedAt.HasValue &&
+        _connectedAddress == address && _connectedAt == connectedAt;
 
     private void MarkRt950UnlockFailed(string reason)
     {
@@ -434,7 +448,12 @@ public partial class MainWindow
             MessageBox.Show(this, "Enable RT950 Tools first.", "RT950 GATT Preset", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        if (!TryResolveRt950Transport(requireRecognizedIdentity: false, out GattCharacteristic? dataCharacteristic, out GattCharacteristic? unlockCharacteristic, out string reason) || dataCharacteristic == null || unlockCharacteristic == null)
+        if (!TryResolveRt950Transport(
+                requireRecognizedIdentity: false,
+                out GattCharacteristic? dataCharacteristic,
+                out GattCharacteristic? unlockCharacteristic,
+                out string reason) ||
+            dataCharacteristic == null || unlockCharacteristic == null)
         {
             MessageBox.Show(this, $"RT950 GATT preset unavailable: {reason}", "RT950 GATT Preset", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -497,7 +516,7 @@ public partial class MainWindow
             Rt950Protocol.IsUnlockResponse(record.Data))
         {
             byte[] response = record.Data.ToArray();
-            Dispatcher.BeginInvoke(() =>
+            _ = Dispatcher.BeginInvoke(() =>
             {
                 AppendSystemLine("RT950 UNLOCK RESPONSE");
                 AppendSystemLine("SOURCE_UUID=FFE1");
@@ -510,7 +529,7 @@ public partial class MainWindow
         }
 
         if (IsRt950DataPathReady && Rt950Protocol.IsOemAck(record.Data))
-            Dispatcher.BeginInvoke(() => AppendSystemLine("RT950 OEM ACK RECEIVED: 06"));
+            _ = Dispatcher.BeginInvoke(() => AppendSystemLine("RT950 OEM ACK RECEIVED: 06"));
     }
 
     private void LogKissFeatureFrame(GattCharacteristic characteristic, KissFrame frame)
@@ -571,7 +590,13 @@ public partial class MainWindow
         };
         var panel = new StackPanel { Margin = new Thickness(12) };
         panel.Children.Add(new TextBlock { Text = "AX.25 payload (HEX):", Margin = new Thickness(0, 0, 0, 5) });
-        var input = new TextBox { FontFamily = new System.Windows.Media.FontFamily("Consolas"), MinHeight = 70, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap };
+        var input = new TextBox
+        {
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            MinHeight = 70,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap
+        };
         panel.Children.Add(input);
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 8) };
         controls.Children.Add(new TextBlock { Text = "Port:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) });
@@ -580,7 +605,13 @@ public partial class MainWindow
         var build = new Button { Content = "BUILD KISS FRAME", MinWidth = 130 };
         controls.Children.Add(build);
         panel.Children.Add(controls);
-        var output = new TextBox { FontFamily = new System.Windows.Media.FontFamily("Consolas"), IsReadOnly = true, MinHeight = 70, TextWrapping = TextWrapping.Wrap };
+        var output = new TextBox
+        {
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            IsReadOnly = true,
+            MinHeight = 70,
+            TextWrapping = TextWrapping.Wrap
+        };
         panel.Children.Add(output);
         build.Click += (_, _) =>
         {
@@ -642,7 +673,8 @@ public partial class MainWindow
         {
             if (!System.IO.File.Exists(OptionalFeatureSettingsFile))
                 return;
-            _optionalFeatureSettings = JsonSerializer.Deserialize<OptionalFeatureSettings>(System.IO.File.ReadAllText(OptionalFeatureSettingsFile)) ?? new OptionalFeatureSettings();
+            _optionalFeatureSettings = JsonSerializer.Deserialize<OptionalFeatureSettings>(
+                System.IO.File.ReadAllText(OptionalFeatureSettingsFile)) ?? new OptionalFeatureSettings();
         }
         catch
         {
