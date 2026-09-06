@@ -9,6 +9,8 @@ main_notifications = (ROOT / 'MainWindow.Notifications.cs').read_text(encoding='
 main_logs = (ROOT / 'MainWindow.Logs.cs').read_text(encoding='utf-8')
 main_session = (ROOT / 'MainWindow.Session.cs').read_text(encoding='utf-8')
 main_rt950_tx = (ROOT / 'MainWindow.Rt950Tx.cs').read_text(encoding='utf-8')
+optional_features = (ROOT / 'MainWindow.OptionalFeatures.cs').read_text(encoding='utf-8')
+feature_models = (ROOT / 'OptionalFeatureModels.cs').read_text(encoding='utf-8')
 insp = (ROOT / 'GattInspectorWindow.xaml.cs').read_text(encoding='utf-8')
 insp_notifications = (ROOT / 'GattInspectorWindow.Notifications.cs').read_text(encoding='utf-8')
 models = (ROOT / 'GattInspectorModels.cs').read_text(encoding='utf-8')
@@ -38,9 +40,9 @@ checks = {
     'cache retains full selected-service characteristic list': 'ServiceCharacteristics' in ctx and 'bestServiceCharacteristics' in main,
     'main uses result-bearing CCCD write': 'WriteClientCharacteristicConfigurationDescriptorWithResultAsync(cccd)' in main,
     'FFE1 handler attach log exists': 'FFE1 VALUECHANGED HANDLER ATTACHED' in main,
-    'RT950 profile marker exists': 'RADTEL_RT950_KISS' in main,
-    'raw notification log exists': 'RAW BLE NOTIFICATION' in main,
-    'raw log precedes main KISS parser': main.find('AppendSystemLine("RAW BLE NOTIFICATION")') < main.find('_autoKissDecoder.Push(data)'),
+    'RT950 profile marker remains available as discovery metadata': 'RADTEL_RT950_KISS' in main,
+    'raw terminal notification evidence exists': 'RAW BLE NOTIFICATION' in main,
+    'raw capture precedes optional KISS parser': main_notifications.find('NotificationRecord record = CaptureMainNotification(sender, data);') < main_notifications.find('_notificationMonitorKissDecoder.Push(data)'),
     'inspector receives auto cache': 'AutoDetectedGattContext? autoGatt' in insp,
     'inspector shares GATT operation gate': 'SemaphoreSlim gattOperationGate' in insp and '_gattOperationGate = gattOperationGate;' in insp,
     'inspector reuses auto service': 'AddAutoDetectedServiceAsync' in insp and 'AUTO-DETECT/REUSED' in insp,
@@ -52,14 +54,14 @@ checks = {
     'source/reused UI metadata exists': 'Source: {info.Source}' in insp and 'Reused: {(info.Reused ? "Yes" : "No")}' in insp,
     'ownership metadata model exists': 'OwnsService' in models and 'Reused' in models and 'Source' in models,
 
-    # Phase B protocol pipeline guards.
+    # Phase B protocol pipeline guards, now routed through the optional KISS module.
     'structured KISS model exposes port and command': 'public int? Port' in kiss and 'public int? Command' in kiss,
     'KISS malformed escape warnings preserved': 'Unknown KISS escape sequence' in kiss and 'Warnings' in kiss,
     'AX25 decoder exists': 'static class Ax25Decoder' in ax25 and 'TryDecode' in ax25,
     'AX25 KISS FCS policy documented': 'Not supplied by KISS transport' in (ROOT / 'ProtocolModels.cs').read_text(encoding='utf-8'),
     'APRS decoder exists': 'static class AprsDecoder' in aprs and 'DecodePosition' in aprs and 'DecodeMessage' in aprs,
-    'main Phase B decoder is isolated from Inspector decoders': 'ReferenceEquals(decoder, _autoKissDecoder)' in main_protocol,
-    'main protocol processing is queued after KISS logging': 'Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame' in main_protocol,
+    'main KISS decoder is isolated from Inspector decoders': 'ReferenceEquals(decoder, _notificationMonitorKissDecoder)' in main_protocol,
+    'main protocol processing is queued after raw capture': 'Dispatcher.BeginInvoke(() => ProcessDecodedKissFrame' in main_protocol,
     'decoded packet window integration exists': 'DecodedPacketsMenuItem_Click' in main_protocol and 'DecodedPacketsWindow' in main_protocol,
     'APRS decode is not printed into serial terminal': 'AppendSystemLine($"APRS RX' not in main_protocol and '_structuredLogStore.Add' in main_protocol,
 
@@ -68,14 +70,14 @@ checks = {
     'notification sequence is monotonic': 'Interlocked.Increment(ref _sequence)' in notifications,
     'notification counters are per characteristic': '_byCharacteristic' in notifications and 'ByCharacteristic' in notifications,
     'main capture uses independent ValueChanged handler': 'NotificationCaptureCharacteristic_ValueChanged' in main_notifications and 'target.ValueChanged += NotificationCaptureCharacteristic_ValueChanged' in main_notifications,
-    'main monitor KISS decoder is isolated': '_notificationMonitorKissDecoder' in main_notifications and 'ReferenceEquals(decoder, _autoKissDecoder)' in main_protocol,
+    'main monitor KISS decoder is isolated': '_notificationMonitorKissDecoder' in main_notifications and 'ReferenceEquals(decoder, _notificationMonitorKissDecoder)' in main_protocol,
     'notification monitor is available from View menu': 'BLE Notification Monitor...' in main_xaml and 'NotificationMonitorMenuItem_Click' in main_notifications,
     'notification monitor pause does not stop capture': 'if (!_paused)' in notification_window and 'PAUSED (capture continues)' in notification_window,
     'notification UI history is bounded': 'MaxVisibleRows = 5000' in notification_window,
     'notification grid uses virtualization': 'VirtualizingPanel.VirtualizationMode="Recycling"' in notification_xaml,
     'inspector multi-characteristic capture follows active subscriptions': '_subscribedCharacteristics.ToHashSet()' in insp_notifications and 'NotificationCaptureCharacteristic_ValueChanged' in insp_notifications,
     'inspector auto terminal notifications are not double counted': 'Do not double-count the same FFE1 notification' in insp_notifications,
-    'notification capture failures are isolated from BLE RX': 'must never interfere with the terminal RX path' in main_notifications and 'must never alter Inspector notification behavior' in insp_notifications,
+    'notification helper failures are isolated from BLE RX': 'must never interfere with BLE RX' in main_notifications and 'must never alter Inspector notification behavior' in insp_notifications,
 
     # Phase D structured log / filters / search guards.
     'structured log store is bounded': 'RemoveRange(0, _history.Count - _maxHistory)' in structured_log and '50000' in structured_log,
@@ -84,7 +86,7 @@ checks = {
     'Phase D captures BLE notifications independently': 'NotificationCaptureHub.Store.RecordAdded +=' in main_logs and 'LogCategory.RX_RAW' in main_logs,
     'Phase D captures successful TX independently of local echo': 'CaptureSuccessfulTxAsync' in main_logs and 'LogCategory.TX_RAW' in main_logs,
     'Phase D stores raw RX and TX bytes': 'data: record.Data' in main_logs and 'data: payload' in main_logs,
-    'Phase D does not duplicate RT950 raw terminal rendering': '_rawTerminalMetadataLinesToSkip = 3' in main_logs,
+    'Phase D RT950 terminal metadata de-duplication remains': '_rawTerminalMetadataLinesToSkip = 3' in main_logs,
     'Phase D log filter engine supports text category device characteristic direction': all(x in log_filter_engine for x in ['criteria.Text', 'criteria.Category', 'criteria.Device', 'criteria.Characteristic', 'criteria.Direction']),
     'Phase D errors warnings only filter exists': 'ErrorsWarningsOnly' in log_filter_engine and 'ErrorsWarningsOnlyCheckBox' in log_filter_window,
     'Phase D search navigation disables auto-scroll': 'AutoScrollCheckBox.IsChecked = false' in log_filter_window and 'MoveSelection' in log_filter_window,
@@ -112,33 +114,39 @@ checks = {
     'Phase E replay grids use virtualization': session_xaml.count('VirtualizingPanel.VirtualizationMode="Recycling"') >= 2,
     'Phase E session window closes with main app': 'CloseSessionCaptureWindow()' in main_protocol,
 
-    # User-priority RT950 manual GATT TX diagnostics.
+    # Generic GATT routing and modular RT950 diagnostics.
     'manual GATT routing controls exist': all(x in main_xaml for x in ['ServiceRouteComboBox', 'NotifyRouteComboBox', 'WriteRouteComboBox', 'WriteTypeComboBox']),
     'manual routing uses cached selected-service characteristics': 'ServiceCharacteristics' in main_rt950_tx and 'CurrentServiceCharacteristics' in main_rt950_tx,
-    'manual write route does not rewrite AutoDetectedGattContext mapping': 'This is intentionally only the active TX route' in main_rt950_tx and '_writeCharacteristic = choice.Characteristic' in main_rt950_tx,
+    'manual write route does not rewrite AutoDetectedGattContext mapping': '_writeCharacteristic = choice.Characteristic' in main_rt950_tx and '_autoGatt.WriteCharacteristic = choice.Characteristic' not in main_rt950_tx,
     'write type supports response and no-response': 'With Response' in main_xaml and 'Without Response' in main_xaml and 'GattWriteOption.WriteWithResponse' in main_rt950_tx and 'GattWriteOption.WriteWithoutResponse' in main_rt950_tx,
     'manual writes share GATT serialization gate': '_gattOperationGate.WaitAsync()' in main_rt950_tx and 'ExecuteTxRequestAsync' in main_rt950_tx,
     'manual TX queue exists': 'class SerialTaskQueue' in tx_queue and '_manualTxQueue.Enqueue' in main_rt950_tx,
-    'manual TX request freezes route and payload': all(x in gatt_routing for x in ['WriteUuid', 'Payload', 'BluetoothAddress', 'ConnectedAt', 'ChunkSize']),
-    'detailed RAW BLE WRITE log exists': all(x in main_rt950_tx for x in ['RAW BLE WRITE', 'COMMAND_SLOT=', 'SERVICE=', 'UUID=', 'TYPE=', 'LEN=', 'HEX=']),
+    'manual TX request freezes route payload and command identity': all(x in gatt_routing for x in ['CommandId', 'WriteUuid', 'Payload', 'BluetoothAddress', 'ConnectedAt', 'ChunkSize']),
+    'detailed RAW BLE WRITE log exists': all(x in main_rt950_tx for x in ['RAW BLE WRITE', 'COMMAND_ID=', 'SERVICE=', 'UUID=', 'TYPE=', 'LEN=', 'HEX=']),
     'write start result logging exists': 'WRITE START RESULT=ACCEPTED' in main_rt950_tx and 'WRITE START RESULT=REJECTED' in main_rt950_tx,
     'write completion status logging exists': all(x in main_rt950_tx for x in ['WRITE COMPLETE', 'STATUS_CODE=', 'PROTOCOL_ERROR=']),
     'without-response submission logging exists': 'WRITE SUBMITTED NO_RESPONSE' in main_rt950_tx,
     'actual characteristic properties are logged': all(x in main_rt950_tx for x in ['GATT CHARACTERISTIC', 'WRITE_WITHOUT_RESPONSE=', 'NOTIFY=', 'INDICATE=']),
-    'unsupported selected write type disables send': 'does not support' in main_rt950_tx and 'SendButton.IsEnabled = supported' in main_rt950_tx,
+    'unsupported selected write type disables send': 'SELECTED_WRITE_TYPE_NOT_SUPPORTED' in main_rt950_tx and 'SendButton.IsEnabled = supported' in main_rt950_tx,
     'FFE1 notify active summary exists': all(x in main_rt950_tx for x in ['BLE NOTIFY ACTIVE', 'CCCD=SUCCESS']),
-    'RT950 OEM ACK 06 diagnostic exists': 'RT950 OEM ACK RECEIVED: 06' in main_rt950_tx,
-    'RT950 OEM and FFE1 presets exist': 'RT950 OEM TEST' in main_rt950_tx and 'RT950 FFE1 TEST' in main_rt950_tx,
-    'RT950 presets never auto-send': 'DATA_SENT=NO' in main_rt950_tx,
-    'explicit RT950 test command loader exists': 'Load RT950 Test Commands' in main_xaml and 'OEM Handshake' in main_rt950_tx and '50 52 4F 47 52 41 4D 42 54 39 30 30 30 55' in main_rt950_tx,
+    'RT950 OEM ACK 06 diagnostic exists': 'RT950 OEM ACK RECEIVED: 06' in optional_features,
+    'RT950 unlock and normal data targets are separate': 'UNLOCK_WRITE=FF31' in optional_features and 'WRITE=FFE1' in optional_features,
+    'RT950 preset never auto-sends': 'DATA_SENT=NO' in optional_features,
+    'explicit RT950 test command loader exists': 'Load RT950 Test Commands' in optional_features and 'OEM Handshake' in main_rt950_tx and 'Rt950Protocol.OemHandshake' in main_rt950_tx,
     'HEX NONE payload builder adds no byte': 'TxLineEnding.None' in tx_payload and 'if (ending.Length == 0)' in tx_payload,
     'HEX parser keeps compact and spaced support': 'ParseHex' in tx_payload and 'char.IsWhiteSpace' in tx_payload,
-    'five independent command rows exist': all(f'CommandRow{i}' in main_xaml for i in range(1, 6)) and all(f'Send {i}' in main_xaml for i in range(1, 6)),
-    'command row count setting supports 1 through 5': 'Number of TX command rows' in main_xaml and all(f'Tag="{i}"' in main_xaml for i in range(1, 6)),
-    'command slot labels and contents persist': 'tx-command-settings.json' in main_rt950_tx and 'TxCommandPreferencesData' in main_rt950_tx and 'SaveTxCommandPreferences' in main_rt950_tx,
-    'command area is bounded and scrollable': 'TxCommandsExpander' in main_xaml and 'MaxHeight="190"' in main_xaml and 'VerticalScrollBarVisibility="Auto"' in main_xaml,
+    'dynamic command rows have no fixed five-row limit': '+ ADD COMMAND' in main_rt950_tx and '_txCommandRowCount' not in main_rt950_tx and 'Math.Clamp' not in main_rt950_tx,
+    'dynamic command rows have SEND CLR remove controls': all(x in main_rt950_tx for x in ['Content = "SEND"', 'Content = "CLR"', 'Content = "X"']),
+    'command labels contents and route overrides persist': 'tx-command-settings.json' in main_rt950_tx and 'CommandWorkspaceSettings' in main_rt950_tx and all(x in gatt_routing for x in ['TargetOverride', 'WriteTypeOverride', 'TxModeOverride', 'LineEndingOverride']),
+    'command area remains bounded scrollable and collapsible': 'TxCommandsExpander.MaxHeight = 260' in main_rt950_tx and 'VerticalScrollBarVisibility = ScrollBarVisibility.Auto' in main_rt950_tx,
     'manual TX exact OEM fixture has a unit test': 'HEX + NONE preserves exact OEM handshake bytes' in manual_tx_tests and 'payload.Length == 14' in manual_tx_tests,
-    'rapid command queue has unit tests': 'rapid command writes remain serialized' in manual_tx_tests and 'five command slots preserve queue order and payload boundaries' in manual_tx_tests,
+    'rapid command queue tests exceed five rows': 'rapid command writes remain serialized' in manual_tx_tests and 'more than five command sends preserve queue order and payload boundaries' in manual_tx_tests,
+
+    # Optional module architecture guards.
+    'RT950 and KISS default off': 'public bool Rt950ToolsEnabled { get; set; }' in feature_models and 'public bool KissToolsEnabled { get; set; }' in feature_models,
+    'RT950 and KISS top menus are separate': 'Header = "_RT950"' in optional_features and 'Header = "_KISS"' in optional_features,
+    'KISS main parser is feature gated not RT950 gated': 'if (IsKissRxProcessingEnabled)' in main_notifications and '_autoGatt.IsRadtelRt950Kiss' not in main_notifications,
+    'embedded RT950 KISS parser is disabled by policy': 'ReferenceEquals(decoder, _autoKissDecoder)' in optional_features and 'return false;' in optional_features,
 }
 
 for xaml in ROOT.glob('*.xaml'):
