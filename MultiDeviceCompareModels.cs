@@ -39,6 +39,20 @@ internal sealed record MultiDeviceSessionSnapshot(
         "-", "-", "-", "-", "-", string.Empty);
 }
 
+internal sealed record MultiDeviceRawRecord(
+    long Sequence,
+    DateTime Timestamp,
+    string SessionId,
+    string DeviceName,
+    string Direction,
+    string Characteristic,
+    byte[] Data)
+{
+    public int Length => Data.Length;
+    public string TimeText => Timestamp.ToString("HH:mm:ss.fff");
+    public string Hex => BitConverter.ToString(Data).Replace('-', ' ');
+}
+
 internal sealed record MultiDeviceComparisonLine(string Field, string A, string B, bool Different)
 {
     public string Marker => Different ? "≠" : "=";
