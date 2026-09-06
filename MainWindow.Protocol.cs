@@ -14,12 +14,14 @@ public partial class MainWindow
         base.OnInitialized(e);
         KissStreamDecoder.AnyFrameCompleted += KissStreamDecoder_AnyFrameCompleted;
         InitializeNotificationCaptureHooks();
+        InitializeLogExplorerHooks();
     }
 
     protected override void OnClosed(EventArgs e)
     {
         KissStreamDecoder.AnyFrameCompleted -= KissStreamDecoder_AnyFrameCompleted;
         ShutdownNotificationCaptureHooks();
+        ShutdownLogExplorerHooks();
         try
         {
             _decodedPacketsWindow?.Close();
