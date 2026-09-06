@@ -68,7 +68,7 @@ public partial class MainWindow
 
             int? kissFrames = null;
             if (_autoGatt.IsRadtelRt950Kiss && BleUuid.Is(sender.Uuid, "FFE1"))
-                kissFrames = _notificationMonitorKissDecoder.Push(data).Count;
+                kissFrames = _notificationMonitorKissDecoder.Push(data).Count();
 
             NotificationRecord record = CaptureMainNotification(sender, data);
             record.SetKissFrameCount(kissFrames);
