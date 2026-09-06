@@ -1,0 +1,83 @@
+<Window x:Class="BLESerialTerminal.NotificationMonitorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BLE Notification Monitor"
+        Height="760" Width="1280" MinHeight="560" MinWidth="900"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="220"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button x:Name="PauseButton" Content="Pause display" Width="105" Margin="0,0,8,0" Click="PauseButton_Click"/>
+                    <Button Content="Clear" Width="75" Margin="0,0,8,0" Click="ClearButton_Click"/>
+                    <CheckBox x:Name="AutoScrollCheckBox" Content="Auto scroll" IsChecked="True" VerticalAlignment="Center" Margin="4,0,14,0"/>
+                    <Button Content="Copy HEX" Width="85" Margin="0,0,8,0" Click="CopyHexButton_Click"/>
+                    <Button Content="Copy text" Width="85" Margin="0,0,8,0" Click="CopyTextButton_Click"/>
+                    <Button Content="Export..." Width="85" Click="ExportButton_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="DisplayStateText" DockPanel.Dock="Right" Text="LIVE"
+                           Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+            </DockPanel>
+        </Border>
+
+        <DataGrid x:Name="NotificationGrid" Grid.Row="1"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Single" SelectionUnit="FullRow"
+                  EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  ScrollViewer.CanContentScroll="True"
+                  SelectionChanged="NotificationGrid_SelectionChanged"
+                  Margin="0,0,0,8">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Binding="{Binding Sequence}" Width="70"/>
+                <DataGridTextColumn Header="Time" Binding="{Binding TimeText}" Width="105"/>
+                <DataGridTextColumn Header="Device" Binding="{Binding Device}" Width="170"/>
+                <DataGridTextColumn Header="Service" Binding="{Binding ServiceText}" Width="105"/>
+                <DataGridTextColumn Header="Characteristic" Binding="{Binding CharacteristicText}" Width="115"/>
+                <DataGridTextColumn Header="Source" Binding="{Binding SourceText}" Width="170"/>
+                <DataGridTextColumn Header="Mode" Binding="{Binding DeliveryMode}" Width="95"/>
+                <DataGridTextColumn Header="Len" Binding="{Binding Length}" Width="65"/>
+                <DataGridTextColumn Header="KISS" Binding="{Binding KissText}" Width="65"/>
+                <DataGridTextColumn Header="ASCII" Binding="{Binding Ascii}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="2" Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Selected notification" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <TextBox x:Name="DetailTextBox" Grid.Row="1"
+                         FontFamily="Consolas" FontSize="12"
+                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="{DynamicResource ControlBackgroundBrush}"
+                         Foreground="{DynamicResource ForegroundBrush}"
+                         Padding="8"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                CornerRadius="6" Padding="7">
+            <TextBlock x:Name="CountersText" Text="Captured 0 notifications / 0 bytes" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</Window>
