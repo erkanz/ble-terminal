@@ -1,10 +1,25 @@
 RT-950 PRO v13 CACHE / FFE1 NOTIFY TEST CHECKLIST
 =================================================
 
-BUILD
-[ ] Run ./PUBLISH_WIN64_FROM_UBUNTU.sh
-[ ] publish/win-x64/BLESerialTerminal.exe is produced
-[ ] Self-contained EXE starts on Windows 10/11 x64 without separate .NET runtime
+PHASE
+PHASE A - v13 HARDWARE QUALIFICATION + BASELINE FREEZE
+Automated build status: CI COMPLETE
+Hardware status: TEST PENDING
+
+AUTHORITATIVE BUILD
+[x] Canonical source is https://github.com/erkanz/ble-terminal main
+[x] GitHub Actions workflow "Build Windows EXE" is the authoritative Windows build
+[x] Latest verified baseline run before Phase A cleanup: 34013614569 = SUCCESS
+[x] Self-contained win-x64 single-file EXE was produced
+[x] EXE SHA-256 from run 34013614569:
+    3c7d51660779eebe206c9edcb8c1f7240b0ea9e135a84a729c9c66dde8f62343
+[x] Build artifact was uploaded successfully
+[ ] Download BLESerialTerminal-win-x64 from the latest successful main Actions run
+[ ] BLESerialTerminal.exe starts on Windows 10/11 x64 without separate .NET runtime
+
+NOTE
+The historical Ubuntu publish helper may remain in the repository, but it is no longer
+the authoritative Phase A / release build path. Test the EXE produced by GitHub Actions.
 
 RADTEL SETTINGS
 [ ] Bluetooth = ON
@@ -80,3 +95,7 @@ OPERATION SERIALIZATION
 [ ] Main TX and Inspector read/write/CCCD/discovery do not overlap as independent GATT operations
 [ ] Notification callbacks continue while queued operations execute
 [ ] No GATT_BUSY-style behavior caused by concurrent app operations
+
+PHASE A COMPLETION RULE
+Do not mark Phase A COMPLETE until the required RT-950 hardware items above pass.
+A green GitHub Actions build is CI COMPLETE only; it is not proof of BLE hardware behavior.
