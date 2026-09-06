@@ -13,8 +13,9 @@ Hardware-qualified BLE baseline: **v13 RT-950 GATT Cache / FFE1 Notify Fix**.
 - **Phase E** — Session Capture / Offline Replay: CI COMPLETE, real RT-950 replay validation pending
 - **Phase F** — GATT Snapshot / Compare: CI COMPLETE, real snapshot validation pending
 - **Phase G** — KISS TCP Bridge: CI COMPLETE on `main`, real RT-950/external-client validation pending
-- **Phase H** — Multi-Device Live Compare: CI COMPLETE on PR, real two-device isolation test pending
+- **Phase H** — Multi-Device Live Compare: CI COMPLETE on `main`, real two-device isolation test pending
 - **RT-950 Manual GATT TX diagnostics** — CI COMPLETE, real FF31/FFE1 radio-side validation pending
+- **Phase I** — Production hardening / release: next software phase
 
 See `ROADMAP.txt` for the exact handoff state, build evidence and non-negotiable ownership rules.
 
@@ -125,9 +126,19 @@ Each compare session owns its own:
 
 The compare grid shows device identity, state, detected profile, service/write/notify UUIDs, CCCD readiness, counters and latest decoded packet metadata. **Compare A / Compare B** produces a deterministic live-state comparison, and KISS HEX TX can be sent to the explicitly selected session.
 
-The architecture requirement is strict: no live Device A service/characteristic wrapper, decoder, GATT gate or TX queue may be used by Device B. Closing the compare window disposes its compare sessions.
+The architecture requirement is strict: no live Device A service/characteristic wrapper, decoder, GATT gate or TX queue may be used by Device B. A disconnected compare session can reconnect with fresh connection-scoped wrappers, while the physical BLE address currently owned by the main terminal is explicitly blocked from duplicate compare ownership. Closing the compare window disposes its compare sessions.
 
-Windows PR CI currently covers Phase H isolation static checks and deterministic comparison tests, but this is not a substitute for the required real two-device test.
+Phase H is merged to `main`; the authoritative Windows build run `34038127391` is green. Static isolation checks, existing regressions, all protocol/diagnostic tests, restore, Windows publish and artifact upload pass. This does **not** substitute for the required real two-device isolation test.
+
+Authoritative Phase H main build:
+
+```text
+commit:   544605e7b4755dc77ba1440a4a555c0a1be12736
+run:      34038127391
+artifact: 9990834350
+EXE size: 78,078,555 bytes
+SHA256:   d69c3357643bc6368e05da0581688cfe5a181374fa636e0e43b69cc1a82257c9
+```
 
 Checklist: `PHASE_H_TEST_CHECKLIST.txt`
 
@@ -149,11 +160,11 @@ Open **Actions → Build Windows EXE**.
 
 The workflow runs the regression suite plus phase-specific static/unit/integration tests, then performs the authoritative Windows restore and self-contained win-x64 single-file publish.
 
-Current Phase H pipeline includes:
+Current pipeline includes:
 
 1. static regression checks
-2. Phase F static checks
-3. Phase G static checks
+2. Phase F GATT Snapshot static checks
+3. Phase G KISS TCP Bridge static checks
 4. Phase H isolation static checks
 5. Protocol tests
 6. Notification tests
