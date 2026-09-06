@@ -158,7 +158,8 @@ public partial class MainWindow
                 direction: "RX",
                 device: record.Device,
                 characteristic: record.CharacteristicText,
-                timestamp: record.Timestamp);
+                timestamp: record.Timestamp,
+                data: record.Data);
         }
         catch
         {
@@ -223,7 +224,8 @@ public partial class MainWindow
                         $"BLE WRITE len={payload.Length} hex={hex} text={text}",
                         direction: "TX",
                         device: device,
-                        characteristic: characteristic);
+                        characteristic: characteristic,
+                        data: payload);
                     return;
                 }
                 if (_writeCharacteristic == null)
