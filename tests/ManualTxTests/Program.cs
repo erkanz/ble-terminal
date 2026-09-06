@@ -14,7 +14,7 @@ internal static class Program
             TestInvalidHex();
             TestTextNone();
             await TestSerializedQueueOrderAsync();
-            await TestRapidFiveCommandQueueAsync();
+            await TestRapidManyCommandQueueAsync();
 
             Console.WriteLine();
             Console.WriteLine($"MANUAL TX TESTS: PASS ({_passed} checks)");
@@ -91,26 +91,27 @@ internal static class Program
         Check(order.SequenceEqual(new[] { "start1", "end1", "start2", "end2" }), "rapid command writes remain serialized");
     }
 
-    private static async Task TestRapidFiveCommandQueueAsync()
+    private static async Task TestRapidManyCommandQueueAsync()
     {
+        const int count = 32;
         var queue = new SerialTaskQueue();
         var sent = new List<string>();
-        string[] payloads = { "A1", "B2B2", "C3", "D4D4D4", "E5" };
         var tasks = new List<Task>();
 
-        for (int i = 0; i < payloads.Length; i++)
+        for (int i = 0; i < count; i++)
         {
-            int slot = i + 1;
-            string payload = payloads[i];
+            int command = i + 1;
+            string payload = $"P{command:D2}";
             tasks.Add(queue.Enqueue(async () =>
             {
-                await Task.Delay(2);
-                sent.Add($"{slot}:{payload}");
+                await Task.Delay(command % 3);
+                sent.Add($"{command}:{payload}");
             }));
         }
 
         await Task.WhenAll(tasks);
-        Check(sent.SequenceEqual(new[] { "1:A1", "2:B2B2", "3:C3", "4:D4D4D4", "5:E5" }), "five command slots preserve queue order and payload boundaries");
+        string[] expected = Enumerable.Range(1, count).Select(i => $"{i}:P{i:D2}").ToArray();
+        Check(sent.SequenceEqual(expected), "more than five command sends preserve queue order and payload boundaries");
     }
 
     private static void CheckThrows<T>(Action action, string name) where T : Exception
