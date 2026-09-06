@@ -7,6 +7,7 @@ main = (ROOT / 'MainWindow.xaml.cs').read_text(encoding='utf-8')
 main_protocol = (ROOT / 'MainWindow.Protocol.cs').read_text(encoding='utf-8')
 main_notifications = (ROOT / 'MainWindow.Notifications.cs').read_text(encoding='utf-8')
 main_logs = (ROOT / 'MainWindow.Logs.cs').read_text(encoding='utf-8')
+main_session = (ROOT / 'MainWindow.Session.cs').read_text(encoding='utf-8')
 insp = (ROOT / 'GattInspectorWindow.xaml.cs').read_text(encoding='utf-8')
 insp_notifications = (ROOT / 'GattInspectorWindow.Notifications.cs').read_text(encoding='utf-8')
 models = (ROOT / 'GattInspectorModels.cs').read_text(encoding='utf-8')
@@ -21,6 +22,10 @@ structured_log = (ROOT / 'StructuredLog.cs').read_text(encoding='utf-8')
 log_filter_engine = (ROOT / 'LogFilterEngine.cs').read_text(encoding='utf-8')
 log_filter_window = (ROOT / 'LogFilterWindow.xaml.cs').read_text(encoding='utf-8')
 log_filter_xaml = (ROOT / 'LogFilterWindow.xaml').read_text(encoding='utf-8')
+session_capture = (ROOT / 'SessionCapture.cs').read_text(encoding='utf-8')
+session_replay = (ROOT / 'SessionReplayProcessor.cs').read_text(encoding='utf-8')
+session_window = (ROOT / 'SessionCaptureWindow.xaml.cs').read_text(encoding='utf-8')
+session_xaml = (ROOT / 'SessionCaptureWindow.xaml').read_text(encoding='utf-8')
 main_xaml = (ROOT / 'MainWindow.xaml').read_text(encoding='utf-8')
 
 checks = {
@@ -69,8 +74,10 @@ checks = {
     # Phase D structured log / filters / search guards.
     'structured log store is bounded': 'RemoveRange(0, _history.Count - _maxHistory)' in structured_log and '50000' in structured_log,
     'structured log has required categories': all(x in structured_log for x in ['CONNECTION', 'DISCOVERY', 'GATT', 'CCCD', 'RX_RAW', 'TX_RAW', 'KISS', 'AX25', 'APRS', 'INSPECTOR', 'WARNING', 'ERROR']),
+    'structured log can carry raw payload bytes': 'byte[] Data' in structured_log and 'byte[]? data = null' in structured_log,
     'Phase D captures BLE notifications independently': 'NotificationCaptureHub.Store.RecordAdded +=' in main_logs and 'LogCategory.RX_RAW' in main_logs,
     'Phase D captures successful TX independently of local echo': 'CaptureSuccessfulTxAsync' in main_logs and 'LogCategory.TX_RAW' in main_logs,
+    'Phase D stores raw RX and TX bytes': 'data: record.Data' in main_logs and 'data: payload' in main_logs,
     'Phase D does not duplicate RT950 raw terminal rendering': '_rawTerminalMetadataLinesToSkip = 3' in main_logs,
     'Phase D log filter engine supports text category device characteristic direction': all(x in log_filter_engine for x in ['criteria.Text', 'criteria.Category', 'criteria.Device', 'criteria.Characteristic', 'criteria.Direction']),
     'Phase D errors warnings only filter exists': 'ErrorsWarningsOnly' in log_filter_engine and 'ErrorsWarningsOnlyCheckBox' in log_filter_window,
@@ -80,6 +87,24 @@ checks = {
     'Phase D log window is available from View menu': 'Diagnostic Log Filters / Search...' in main_xaml and 'LogFilterMenuItem_Click' in main_logs,
     'Phase D log grid uses virtualization': 'VirtualizingPanel.VirtualizationMode="Recycling"' in log_filter_xaml,
     'Phase D visible history is bounded': 'MaxVisibleRows = 20000' in log_filter_window,
+
+    # Phase E session capture / replay guards.
+    'Phase E versioned session format exists': 'SessionFormat' in session_capture and 'CurrentVersion = 1' in session_capture and 'BLESerialTerminalSession' in session_capture,
+    'Phase E session captures structured LogStore entries': 'class SessionRecorder' in session_capture and '_store.EntryAdded += Store_EntryAdded' in session_capture,
+    'Phase E session raw bytes are not terminal-text-only': 'DataBase64' in session_capture and 'DataHex' in session_capture and 'FromLogEntry' in session_capture,
+    'Phase E session metadata includes profile and GATT mapping': all(x in session_capture for x in ['Profile', 'ServiceUuid', 'WriteUuid', 'NotifyUuid', 'RelevantGatt']),
+    'Phase E session metadata comes from live main connection': 'BuildSessionCaptureMetadata' in main_session and 'ServiceCharacteristics' in main_session,
+    'Phase E serializer validates format versions': 'MinimumSupportedVersion' in session_capture and 'newer than this application supports' in session_capture,
+    'Phase E replay uses per-characteristic KISS decoder state': 'Dictionary<string, KissStreamDecoder>' in session_replay,
+    'Phase E replay feeds only RX_RAW RX byte events': 'LogCategory.RX_RAW' in session_replay and 'record.Direction.Equals("RX"' in session_replay,
+    'Phase E replay reuses AX25 and APRS decoders': 'Ax25Decoder.TryDecode' in session_replay and 'AprsDecoder.Decode' in session_replay,
+    'Phase E replay reset clears stream state': '_kissDecoders.Clear()' in session_replay and 'public void Reset()' in session_replay,
+    'Phase E replay UI explicitly blocks BLE TX': 'NEVER transmitted to BLE' in session_xaml and 'BLE TX DISABLED' in session_window,
+    'Phase E capture and replay cannot run together': 'Stop live capture before starting offline replay' in session_window and 'Pause offline replay before starting a live session capture' in session_window,
+    'Phase E replay controls exist': all(x in session_xaml for x in ['PlayButton', 'PauseButton', 'StepButton', 'ResetReplayButton', 'ReplaySpeedComboBox']),
+    'Phase E session UI is available from View menu': 'Session Capture / Offline Replay...' in main_xaml and 'SessionCaptureMenuItem_Click' in main_session,
+    'Phase E replay grids use virtualization': session_xaml.count('VirtualizingPanel.VirtualizationMode="Recycling"') >= 2,
+    'Phase E session window closes with main app': 'CloseSessionCaptureWindow()' in main_protocol,
 }
 
 for xaml in ROOT.glob('*.xaml'):
