@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$src = Join-Path $root 'Assets/BLESerialTerminal.ico.b64'
+$generator = Join-Path $PSScriptRoot 'generate_icon.py'
 $dst = Join-Path $root 'Assets/BLESerialTerminal.ico'
-if (-not (Test-Path $src)) { throw "Missing icon source: $src" }
-$raw = (Get-Content -Raw $src).Trim()
-[IO.File]::WriteAllBytes($dst, [Convert]::FromBase64String($raw))
+if (-not (Test-Path $generator)) { throw "Missing icon generator: $generator" }
+python $generator $dst
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $dst)) { throw "Application icon generation failed" }
 Write-Host "Prepared application icon: $dst"
