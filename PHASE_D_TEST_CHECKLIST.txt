@@ -1,0 +1,323 @@
+BLE SERIAL TERMINAL - PHASE D TEST CHECKLIST
+=============================================
+Phase: D - Log Filters / Search
+Status at creation: CI COMPLETE / RUNTIME FUNCTIONAL TEST PENDING
+Repository: https://github.com/erkanz/ble-terminal
+Date: 2026-09-06
+
+PURPOSE
+-------
+Validate the structured diagnostic log, live filters, search navigation and export path
+without changing or destabilizing the qualified BLE/GATT receive path, Phase B protocol
+decoder, or Phase C Notification Monitor.
+
+IMPLEMENTATION BASELINE PROVEN BY CI
+------------------------------------
+Implementation commit: 84c00e33b6f2e0b5d633ff7eb9d4cad7c0a8a262
+GitHub Actions run: 34016543683
+Result: SUCCESS
+Artifact ID: 9984076272
+EXE size: 78,003,385 bytes
+EXE SHA-256: ce89dbeb725ecd176696ad179a9f4f0dc46d35ddb6084cafaccd01a2b7eb9be9
+
+Automated result:
+[x] static regression checks PASS
+[x] Phase B protocol decoder tests PASS - 40 checks
+[x] Phase C notification capture tests PASS - 15 checks
+[x] Phase D log filter tests PASS - 14 checks
+[x] dotnet restore PASS
+[x] Windows self-contained single-file publish PASS
+[x] Actions artifact upload PASS
+
+NOTE
+----
+Documentation commits after the implementation baseline trigger newer Actions builds.
+For runtime testing, use the newest successful main artifact that contains Phase D sources.
+
+
+1. OPEN / BASIC LIVE LOG
+------------------------
+1) Start BLESerialTerminal.exe.
+2) Open View -> Diagnostic Log Filters / Search...
+3) Start a BLE scan and connect the RT-950 with Auto Detect.
+4) Wait for RADTEL KISS READY.
+
+Expected:
+[ ] Log window opens without affecting BLE connection state
+[ ] Connection/discovery/GATT/CCCD events appear live
+[ ] Sequence numbers increase monotonically
+[ ] Timestamp is populated
+[ ] Device column identifies the current device when available
+[ ] Characteristic column shows short/full UUID information where applicable
+[ ] Main terminal still behaves normally
+
+
+2. REQUIRED CATEGORY COVERAGE
+-----------------------------
+Generate normal connection, receive and transmit traffic.
+
+Expected categories when applicable:
+[ ] CONNECTION
+[ ] DISCOVERY
+[ ] GATT
+[ ] CCCD
+[ ] RX_RAW
+[ ] TX_RAW
+[ ] KISS
+[ ] AX25
+[ ] APRS
+[ ] INSPECTOR lifecycle/state events
+[ ] WARNING for warning-classified events
+[ ] ERROR for failed/error events
+
+Note: dedicated GATT Inspector internal debug export remains its own detailed diagnostic
+source. Phase D INSPECTOR structured entries cover terminal-visible Inspector lifecycle/state
+events and must not replace the Inspector's existing debug log.
+
+
+3. RT-950 RX_RAW DUPLICATE GUARD
+--------------------------------
+1) Connect RT-950 and receive exactly one FFE1 BLE notification.
+2) Filter Category = RX_RAW and Characteristic = FFE1.
+
+Expected:
+[ ] Exactly one structured RX_RAW entry represents that BLE notification
+[ ] The terminal's RAW BLE NOTIFICATION rendering does NOT create a second RX_RAW copy
+[ ] Phase C BLE Notification Monitor still receives the notification normally
+[ ] Terminal KISS/AX25/APRS parsing remains unchanged
+
+Repeat with several packets:
+[ ] RX_RAW count tracks real notifications without obvious 2x duplication
+
+
+4. KISS / AX25 / APRS FILTERS
+-----------------------------
+Receive a real APRS packet over RT-950.
+
+Expected:
+[ ] Category KISS isolates KISS diagnostic records
+[ ] Category AX25 isolates AX.25 decode records
+[ ] Category APRS isolates APRS decode records
+[ ] Text search can find a callsign or APRS summary text
+[ ] Characteristic FFE1 filter can be combined with the protocol categories
+[ ] Decoded packet window still shows the same packet
+
+
+5. TX_RAW WITH LOCAL ECHO OFF
+-----------------------------
+1) Leave Local echo OFF.
+2) Send a valid command/payload that succeeds over the active BLE write characteristic.
+3) Filter Category = TX_RAW or Direction = TX.
+
+Expected:
+[ ] Successful TX creates one TX_RAW structured entry
+[ ] TX_RAW contains byte length and HEX representation
+[ ] TX_RAW is present even though Local echo is OFF
+[ ] Main TX byte counter increases normally
+
+Failure behavior:
+1) Produce a write failure if safely/reproducibly possible, for example by disconnecting
+   before sending or using a non-writable state.
+
+Expected:
+[ ] Failed send is NOT reported as a successful TX_RAW entry
+[ ] Existing terminal error handling remains visible
+[ ] ERROR filter can surface the failure when the terminal emits an error event
+
+
+6. FILTER MATRIX
+----------------
+Test each filter independently, then combine filters.
+
+Text search:
+[ ] arbitrary ASCII text
+[ ] callsign / device text
+[ ] Unicode text such as İstanbul / Türkçe when present in log data
+
+Category:
+[ ] ALL
+[ ] CONNECTION
+[ ] DISCOVERY
+[ ] GATT
+[ ] CCCD
+[ ] RX_RAW
+[ ] TX_RAW
+[ ] KISS
+[ ] AX25
+[ ] APRS
+[ ] INSPECTOR
+[ ] WARNING
+[ ] ERROR
+
+Device:
+[ ] exact/partial RT-950 device text
+[ ] nonmatching value gives zero results
+
+Characteristic:
+[ ] FFE1
+[ ] a different UUID when available
+[ ] nonmatching UUID gives zero results
+
+Direction:
+[ ] ALL
+[ ] RX
+[ ] TX
+
+Errors/warnings:
+[ ] Errors / warnings only hides normal information events
+[ ] disabling it restores normal filtered results
+
+Combined filters:
+[ ] Category + device
+[ ] Category + characteristic
+[ ] text + category + characteristic
+[ ] direction + characteristic
+[ ] errors/warnings + text
+
+Clear filters:
+[ ] Clear filters returns Category/Direction to ALL
+[ ] clears text/device/characteristic filters
+[ ] disables Errors / warnings only
+[ ] underlying structured log history is NOT erased
+
+
+7. SEARCH NAVIGATION / HIGHLIGHT
+--------------------------------
+1) Enter a search term with multiple matching rows.
+2) Keep Auto scroll ON initially.
+3) Press Next match.
+4) Press Previous match.
+
+Expected:
+[ ] selected/current row visibly changes
+[ ] current match is highlighted by DataGrid selection
+[ ] navigation wraps at beginning/end
+[ ] Auto scroll is switched OFF when navigating matches
+[ ] incoming live records no longer yank the selection to the bottom
+[ ] manually re-enabling Auto scroll resumes follow-tail behavior
+
+
+8. LIVE TRAFFIC WHILE FILTERED
+------------------------------
+1) Set Category = RX_RAW, Characteristic = FFE1.
+2) Receive sustained RT-950 traffic for several minutes.
+3) Change filters repeatedly while traffic continues.
+
+Expected:
+[ ] new matching entries continue to appear
+[ ] nonmatching entries remain hidden
+[ ] changing filters rebuilds the visible result correctly
+[ ] BLE RX does not stop
+[ ] KISS/AX25/APRS decode continues
+[ ] Notification Monitor remains usable
+[ ] application remains responsive
+
+
+9. FULL / FILTERED EXPORT
+-------------------------
+Filtered export:
+1) Apply Category = RX_RAW and Characteristic = FFE1.
+2) Click Export filtered.
+
+Expected:
+[ ] file is created
+[ ] export identifies Mode = FILTERED
+[ ] filter criteria are recorded
+[ ] only matching structured entries are exported
+[ ] SESSION METADATA section is present
+[ ] connection/device/address/profile metadata is present when available
+[ ] UTF-8 text is preserved
+
+Full export:
+1) Click Export full.
+
+Expected:
+[ ] file is created
+[ ] export identifies Mode = FULL
+[ ] all retained structured entries are exported regardless of active filters
+[ ] SESSION METADATA section is present
+[ ] TSV-style columns remain readable
+
+
+10. COPY / DETAIL VIEW
+----------------------
+1) Select a log row.
+
+Expected:
+[ ] selected-entry panel shows sequence/timestamp/category/level/direction/device/
+    characteristic/message
+[ ] Copy row places a complete tab-separated row on clipboard
+
+
+11. INSPECTOR INTERACTION
+-------------------------
+1) Keep Diagnostic Log Filters / Search open.
+2) Open GATT Inspector.
+3) Perform safe Read/Notify/Indicate actions as appropriate.
+4) Close Inspector.
+5) Receive another RT-950 APRS packet.
+
+Expected:
+[ ] Inspector opens/closes normally
+[ ] structured INSPECTOR lifecycle/state entries are visible where emitted by main terminal
+[ ] Phase A Auto Detect FFE1 subscription remains protected
+[ ] FFE1 RX continues after Inspector closes
+[ ] no duplicate main FFE1 RX_RAW entries are introduced
+[ ] dedicated Inspector debug log/export remains functional
+
+
+12. DISCONNECT / RECONNECT
+--------------------------
+1) Disconnect RT-950.
+2) Reconnect manually or allow Auto reconnect.
+3) Receive traffic again.
+
+Expected:
+[ ] disconnect/reconnect events appear under CONNECTION
+[ ] filters remain functional
+[ ] new RX_RAW entries use the active connection/device context
+[ ] successful TX after reconnect is still captured
+[ ] no stale characteristic causes an exception in the log window
+
+
+13. WINDOW LIFECYCLE
+--------------------
+[ ] close Diagnostic Log Filters / Search while BLE remains connected
+[ ] terminal RX/TX continues normally
+[ ] reopen the log window
+[ ] retained bounded history is visible
+[ ] repeated open/close does not duplicate visible events
+[ ] application shutdown closes the log window cleanly
+
+
+14. PERFORMANCE / BOUNDED HISTORY
+---------------------------------
+Automated guards already verify bounded stores. Runtime qualification should still check:
+
+[ ] sustained traffic does not cause runaway visible row growth
+[ ] DataGrid scrolling remains responsive
+[ ] CPU usage does not obviously spike merely because filters are open
+[ ] no BLE notification loss is observed compared with Notification Monitor / terminal
+[ ] no UI freeze during full-history filter rebuilds under realistic traffic volume
+
+
+PHASE D COMPLETION GATE
+-----------------------
+Do NOT mark Phase D COMPLETE until the following are all PASS:
+
+[ ] latest main CI is green
+[ ] RT-950 live structured logging works
+[ ] one FFE1 notification does not become duplicate RX_RAW records
+[ ] filters and combinations work
+[ ] TX_RAW works with Local echo OFF
+[ ] search navigation/highlight/autoscroll behavior works
+[ ] full and filtered exports work with session metadata
+[ ] sustained traffic does not disturb BLE/KISS/APRS processing
+[ ] disconnect/reconnect works
+[ ] no Phase A/B/C regression is observed
+
+When complete, update ROADMAP.txt with:
+- hardware/functional test result
+- tested commit/run/artifact
+- any deviations or known limitations
+- Phase D status = COMPLETE
