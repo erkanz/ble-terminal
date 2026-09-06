@@ -66,16 +66,29 @@ public partial class MainWindow
             byte[] data = new byte[checked((int)reader.UnconsumedBufferLength)];
             reader.ReadBytes(data);
 
-            int? kissFrames = null;
-            if (_autoGatt.IsRadtelRt950Kiss && BleUuid.Is(sender.Uuid, "FFE1"))
-                kissFrames = _notificationMonitorKissDecoder.Push(data).Count();
-
+            // Raw BLE capture is always first and never depends on RT950/KISS state.
             NotificationRecord record = CaptureMainNotification(sender, data);
+
+            int? kissFrames = null;
+            if (IsKissRxProcessingEnabled)
+            {
+                List<KissFrame> completed = _notificationMonitorKissDecoder.Push(data).ToList();
+                kissFrames = completed.Count;
+                if (_optionalFeatureSettings.KissShowRawFrames)
+                {
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        foreach (KissFrame frame in completed)
+                            LogKissFeatureFrame(sender, frame);
+                    });
+                }
+            }
+
             record.SetKissFrameCount(kissFrames);
         }
         catch
         {
-            // Monitoring is diagnostic-only and must never interfere with the terminal RX path.
+            // Monitoring/protocol helpers are diagnostic-only and must never interfere with BLE RX.
         }
     }
 
