@@ -57,12 +57,15 @@ public partial class MainWindow
 
         if (_autoGatt.Service != null && _autoGatt.ServiceCharacteristics.Count > 0)
         {
+            // Preserve the complete Auto Detect service snapshot, but mark roles from the
+            // CURRENT live route. This keeps capture metadata truthful after a manual TX
+            // override such as Notify=FFE1 / Write=FF31 without mutating AutoDetectedGattContext.
             foreach (GattCharacteristic characteristic in _autoGatt.ServiceCharacteristics)
             {
-                bool isWrite = ReferenceEquals(characteristic, _autoGatt.WriteCharacteristic) ||
-                               characteristic.Uuid == _autoGatt.WriteCharacteristic?.Uuid;
-                bool isNotify = ReferenceEquals(characteristic, _autoGatt.NotifyCharacteristic) ||
-                                characteristic.Uuid == _autoGatt.NotifyCharacteristic?.Uuid;
+                bool isWrite = _writeCharacteristic != null &&
+                               (ReferenceEquals(characteristic, _writeCharacteristic) || characteristic.Uuid == _writeCharacteristic.Uuid);
+                bool isNotify = _notifyCharacteristic != null &&
+                                (ReferenceEquals(characteristic, _notifyCharacteristic) || characteristic.Uuid == _notifyCharacteristic.Uuid);
                 string role = isWrite && isNotify ? "WRITE+NOTIFY" : isWrite ? "WRITE" : isNotify ? "NOTIFY" : "SERVICE";
                 metadata.RelevantGatt.Add(new SessionGattCharacteristic
                 {
