@@ -6,7 +6,7 @@ Platform: Windows 10 2004+ / Windows 11 x64
 Framework: .NET 8 / WPF
 Authoritative build: GitHub Actions / windows-latest
 Date: 2026-09-06
-Roadmap revision: 6
+Roadmap revision: 7
 
 PURPOSE OF THIS FILE
 --------------------
@@ -40,17 +40,19 @@ Current phase status:
 - RT950 Manual GATT TX diagnostics: CI COMPLETE / HARDWARE TEST PENDING
 - Phase F - GATT Snapshot / Compare: CI COMPLETE / HARDWARE TEST PENDING
 - Phase G - KISS TCP Bridge: CI COMPLETE / HARDWARE + EXTERNAL CLIENT TEST PENDING
-- Phase H - Multi-Device Live Compare: CI COMPLETE ON PR / TWO-DEVICE RUNTIME TEST PENDING
+- Phase H - Multi-Device Live Compare: CI COMPLETE ON MAIN / TWO-DEVICE RUNTIME TEST PENDING
 - Phase I - Production Hardening / Release: NOT STARTED
 
-Current implementation priority:
-1. merge Phase H after latest PR head remains green
-2. run authoritative main Windows build
-3. perform Phase H real two-device isolation test when hardware is available
-4. then Phase I production hardening/release
+Current software priority:
+1. begin Phase I production hardening on a development branch/PR
+2. remove compiler/runtime reliability debt without changing qualified BLE behavior
+3. add phase-specific hardening tests and keep all existing suites green
+4. merge Phase I only after Windows CI is green
+5. perform remaining hardware/runtime gates when devices/external clients are available
+6. only tag a release after Phase I and required release smoke tests are complete
 
-Older hardware/runtime gates from B/C/D/E/F/G/manual RT950 remain open and must not be
-silently converted to PASS.
+Older hardware/runtime gates from B/C/D/E/F/G/H/manual RT950 remain open and must not
+be silently converted to PASS.
 
 
 ======================================================================
@@ -83,30 +85,30 @@ Phase G automated evidence:
 - KISS TCP Bridge loopback/lifecycle tests: PASS - 25 checks
 - restore/publish/EXE/hash/artifact upload: PASS
 
-PHASE H - GREEN PR IMPLEMENTATION BUILD
----------------------------------------
-Development branch:
-    phase-h-multi-device-compare
-PR:
+PHASE H - AUTHORITATIVE MAIN BASELINE
+-------------------------------------
+Merged PR:
     #2 - Phase H: Multi-Device Live Compare
-Green implementation commit:
-    fa4d97af1dd0cab38a9569462111d5200271417a
+Main commit:
+    544605e7b4755dc77ba1440a4a555c0a1be12736
 GitHub Actions run:
-    34037557327 - SUCCESS
+    34038127391 - SUCCESS
 Artifact ID:
-    9990664978
+    9990834350
+Artifact URL:
+    https://github.com/erkanz/ble-terminal/actions/runs/34038127391/artifacts/9990834350
 BLESerialTerminal.exe size:
-    78,078,258 bytes
+    78,078,555 bytes
 BLESerialTerminal.exe SHA-256:
-    f2b3e5c22035273647da9f5dd79be5dc32fa01d4dd61f302c48a210442133dc3
+    d69c3357643bc6368e05da0581688cfe5a181374fa636e0e43b69cc1a82257c9
 Artifact ZIP SHA-256:
-    296f7ff313f2f6a1b82ba326d4c177bde0add578cd71aa6658cdc8b197133bf5
+    baf96afe3a708d965746c69dff7d7b1b5ca77d4784919e9b95d5e5f40eb9e0b0
 
-Phase H automated evidence at that run:
+Phase H authoritative automated evidence:
 - existing static regression: PASS
-- Phase F static: PASS
-- Phase G static: PASS
-- Phase H isolation static: PASS - 22 checks
+- Phase F static: PASS - 14 checks
+- Phase G static: PASS - 25 checks
+- Phase H isolation static: PASS - 24 checks
 - Protocol tests: PASS - 40 checks
 - Notification tests: PASS - 15 checks
 - Log Filter tests: PASS - 14 checks
@@ -115,13 +117,13 @@ Phase H automated evidence at that run:
 - GATT Snapshot tests: PASS - 18 checks
 - KISS TCP Bridge tests: PASS - 25 checks
 - Multi-Device Compare tests: PASS - 15 checks
-- restore: PASS
+- dotnet restore: PASS
 - Windows self-contained single-file publish: PASS
-- EXE + SHA-256: PASS
+- EXE + SHA-256 generation: PASS
 - artifact upload: PASS
 
-The final Phase H authoritative artifact is still the post-merge main build, not the PR
-artifact above. Do not report Phase H as merged/main-qualified until that main build exists.
+Phase H is therefore main/CI-qualified, but NOT hardware COMPLETE. Real two-device
+isolation remains mandatory before Phase H can be called COMPLETE.
 
 
 ======================================================================
@@ -137,11 +139,13 @@ Rules:
 - GitHub main is the source of truth.
 - GitHub Actions on Windows is the release/build authority.
 - Do not return to ZIP handoff as the normal workflow.
-- Temporary branches/PRs are allowed for validation.
+- Temporary branches/PRs are allowed and preferred for substantial phases.
 - Final accepted source must be merged to main.
 - Never claim an EXE exists before Actions actually produces it.
 - Never infer radio RF success or OEM-command acceptance from GATT success.
 - Never call a hardware behavior tested unless a real hardware test was performed.
+- Documentation-only commits may trigger CI; the newest commit containing all changes is
+  the one that matters for regression verification.
 
 Authoritative workflow:
     Actions -> Build Windows EXE
@@ -241,6 +245,7 @@ GATT SERIALIZATION
 - manual main TX is serialized through its TX queue/gate.
 - KISS TCP bridge TX uses the main GATT serialization gate.
 - Phase H compare sessions each own an independent GATT serialization gate and TX gate.
+- Phase H must not double-own the physical BLE address currently owned by MainWindow.
 - notification callbacks must not block on a global shared gate.
 - stale route/wrapper identity must be revalidated after waiting for a gate.
 
@@ -280,6 +285,7 @@ STEP 2 - IMPLEMENTATION
 - preserve connection-scoped GATT ownership
 - avoid competing CCCD subscriptions when an existing qualified path can be observed
 - use bounded histories/queues for sustained traffic features
+- do not hide routine failures; surface diagnostics without crashing the UI thread
 
 STEP 3 - AUTOMATED VERIFICATION
 At minimum:
@@ -495,12 +501,14 @@ Checklist: PHASE_G_TEST_CHECKLIST.txt
 
 
 PHASE H - MULTI-DEVICE LIVE COMPARE
-STATUS: CI COMPLETE ON PR / TWO-DEVICE RUNTIME TEST PENDING
-----------------------------------------------------------
-Branch:
-    phase-h-multi-device-compare
-PR:
+STATUS: CI COMPLETE ON MAIN / TWO-DEVICE RUNTIME TEST PENDING
+------------------------------------------------------------
+Merged PR:
     #2
+Main commit:
+    544605e7b4755dc77ba1440a4a555c0a1be12736
+Main CI:
+    run 34038127391 - SUCCESS
 
 Implemented:
 [x] View -> Multi-Device Live Compare...
@@ -515,25 +523,26 @@ Implemented:
 [x] each session owns its own KissStreamDecoder
 [x] each session owns independent notification/RX/KISS/AX25/APRS/TX counters
 [x] per-session connection generation prevents stale queued TX route reuse
+[x] disconnected compare session can reconnect using fresh connection-scoped wrappers
 [x] disconnect clears connection-scoped wrappers
+[x] current MainWindow physical BLE address is blocked from duplicate compare ownership
 [x] RT-950/NUS/HM10/generic BLE-UART Auto Detect logic for compare sessions
 [x] per-session selected KISS HEX TX
-[x] A/B state comparison view
+[x] A/B live-state comparison view
 [x] compare fields include identity/profile/GATT/CCCD/counters/last decoded packet/error
 [x] compare window cleanup disposes every compare session
 [x] session grid virtualized
-[x] Phase H static PASS - 22
+[x] Phase H static PASS - 24
 [x] Multi-Device Compare model tests PASS - 15
-[x] PR Windows build run 34037557327 PASS
+[x] authoritative main Windows build PASS
 
 Architecture rule:
 No live characteristic/service/device wrapper, GATT gate, TX gate, KISS decoder or
 counter from compare Device A may be used by compare Device B. The normal MainWindow
-single-device connection remains a separate ownership domain.
+single-device connection remains a separate ownership domain, and its currently-owned
+physical BLE address may not be opened again in the compare domain.
 
 Remaining before Phase H can be COMPLETE:
-[ ] merge latest validated PR head to main
-[ ] authoritative main Actions build PASS
 [ ] connect two real devices simultaneously
 [ ] A-only RX changes A only
 [ ] B-only RX changes B only
@@ -558,6 +567,7 @@ Planned:
 - resource lifecycle audit across all windows/transports/sessions
 - routine BLE/network failures must not crash UI thread
 - stale wrapper/cancellation/error handling audit
+- nullable/static-analysis warning cleanup where safe
 - settings/reconnect policy audit
 - sustained traffic / repeated connect-disconnect soak test
 - KISS TCP slow-client/backpressure soak
@@ -568,12 +578,16 @@ Planned:
 - SHA-256 verified
 - v* tagged GitHub Release with EXE + SHA-256
 
+Phase I must not change the already-qualified Phase A RT-950 ownership/CCCD behavior just
+to make code look cleaner. Any lifecycle cleanup touching that path must be regression-
+covered and Windows CI green before merge.
+
 
 ======================================================================
 8. CURRENT GITHUB ACTIONS EXPECTED TEST ORDER
 ======================================================================
 
-After Phase H integration the authoritative workflow should include:
+Authoritative workflow currently includes:
 1. Checkout
 2. Setup .NET 8
 3. Setup Python
@@ -615,6 +629,7 @@ LAYER 1 - STATIC / UNIT
 - manual TX payload/queue tests
 - KISS TCP loopback/lifecycle tests
 - Phase H isolation/model tests
+- Phase I lifecycle/error-hardening tests when introduced
 
 LAYER 2 - WINDOWS CI
 - authoritative restore
@@ -651,16 +666,19 @@ Required beyond BLE transport:
 ======================================================================
 
 Immediate software sequence:
-1. inspect latest PR #2 Actions run after documentation-only follow-up commits
-2. if green, mark PR ready and merge Phase H to main
-3. inspect main Actions run
-4. fix any main-only build regression if present
-5. record final main artifact/run/hash
-6. keep Phase H status HARDWARE TEST PENDING until real two-device checklist is supplied
-7. after Phase H main is stable, begin Phase I only if user wants to continue software work
+1. inspect the newest main Actions run; main commit 544605e7 is the accepted Phase H
+   implementation baseline and run 34038127391 is its authoritative green build
+2. create a Phase I development branch from current main
+3. begin with low-risk production hardening: compiler-warning cleanup, lifecycle/error
+   audit, deterministic tests, then Windows CI
+4. do not merge Phase I until every existing Phase F/G/H and protocol/diagnostic test remains green
+5. update this ROADMAP and create/update the Phase I checklist with exact CI evidence
+6. keep Phase H status TWO-DEVICE RUNTIME TEST PENDING until real hardware evidence is supplied
+7. keep B/C/D/E/F/G/manual RT950 pending statuses intact until their own checklists pass
+8. do not create a final v* release until Phase I release gates and real Windows smoke test pass
 
-Do not wait for old B/C/D/E/F/G hardware gates to implement unrelated software unless a
-specific phase truly depends on those results. However never call those older phases
-COMPLETE without their required real tests.
+Do not wait for old B/C/D/E/F/G/H hardware gates to implement unrelated software unless a
+specific Phase I item truly depends on those results. However never call those older
+phases COMPLETE without their required real tests.
 
-END OF ROADMAP REVISION 6
+END OF ROADMAP REVISION 7
