@@ -16,11 +16,13 @@ public partial class MainWindow
         InitializeNotificationCaptureHooks();
         InitializeLogExplorerHooks();
         InitializeRt950TxDiagnostics();
+        InitializeKissTcpBridge();
     }
 
     protected override void OnClosed(EventArgs e)
     {
         KissStreamDecoder.AnyFrameCompleted -= KissStreamDecoder_AnyFrameCompleted;
+        ShutdownKissTcpBridge();
         ShutdownRt950TxDiagnostics();
         ShutdownNotificationCaptureHooks();
         ShutdownLogExplorerHooks();

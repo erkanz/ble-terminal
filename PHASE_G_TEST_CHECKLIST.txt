@@ -1,0 +1,175 @@
+BLE SERIAL TERMINAL - PHASE G KISS TCP BRIDGE TEST CHECKLIST
+============================================================
+Repository: https://github.com/erkanz/ble-terminal
+Phase: G - KISS TCP Bridge
+Status: CODE COMPLETE / CI VALIDATION IN PROGRESS / HARDWARE TEST PENDING
+Date: 2026-09-06
+
+PURPOSE
+-------
+Expose the qualified BLE KISS byte stream as a local TCP KISS endpoint without
+creating a second BLE notification subscription or bypassing the safe GATT write
+serialization path.
+
+NON-NEGOTIABLE SAFETY / OWNERSHIP RULES
+----------------------------------------
+[ ] Bridge is OFF when the application starts.
+[ ] Default bind is 127.0.0.1 only.
+[ ] 0.0.0.0 / LAN binding occurs only after explicit user selection and confirmation.
+[ ] Opening the bridge window alone does not start a listener.
+[ ] Closing the bridge window stops the listener.
+[ ] BLE RX observation comes from the existing NotificationCaptureHub path.
+[ ] Bridge does not write a second CCCD or create a competing FFE1 subscription.
+[ ] TCP TX uses the shared _gattOperationGate.
+[ ] Auto Detect baseline write characteristic is preferred for KISS TCP TX.
+[ ] RT950 manual FF31 diagnostic override must not redirect bridge KISS traffic.
+[ ] BLE reconnect gets a fresh connection-scoped route and old TCP clients are closed.
+[ ] Slow TCP clients cannot create unbounded memory growth; bounded queue overflow closes that client.
+
+AUTOMATED / CI GATE
+-------------------
+Expected checks:
+[ ] existing static regression PASS
+[ ] Phase F static checks PASS
+[ ] Phase G static architecture checks PASS
+[ ] protocol tests PASS (40 existing checks)
+[ ] notification tests PASS (15 existing checks)
+[ ] log filter tests PASS (14 existing checks)
+[ ] session capture/replay tests PASS (19 existing checks)
+[ ] manual RT950 GATT TX tests PASS (13 existing checks)
+[ ] GATT snapshot tests PASS (18 existing checks)
+[ ] KISS TCP bridge loopback tests PASS
+[ ] dotnet restore PASS
+[ ] Windows x64 self-contained publish PASS
+[ ] EXE + SHA256 generated
+[ ] artifact upload PASS
+
+A - DEFAULT / UI SAFETY
+-----------------------
+1. Launch the application without connecting any BLE device.
+2. Open View -> KISS TCP Bridge...
+3. Confirm:
+   [ ] state is STOPPED
+   [ ] endpoint is '-'
+   [ ] bind defaults to 'Localhost only (127.0.0.1)'
+   [ ] port defaults to 8001
+   [ ] no TCP listener starts until Start bridge is pressed
+4. Select LAN/all interfaces and press Start.
+   [ ] explicit warning/confirmation appears
+   [ ] choosing No leaves bridge stopped
+5. Return bind to localhost.
+
+B - RT-950 BLE READY GATE
+-------------------------
+1. Connect RT-950 using Auto Detect.
+2. Wait for:
+       RADTEL KISS READY
+3. Open View -> KISS TCP Bridge...
+4. Press Start bridge with 127.0.0.1 / 8001.
+5. Confirm bridge state:
+   [ ] RUNNING / BLE READY
+   [ ] endpoint 127.0.0.1:8001
+   [ ] clients 0 initially
+6. If bridge is started before BLE is ready:
+   [ ] listener can run in BLE SUSPENDED state
+   [ ] a TCP client is not allowed to become an active forwarding client until BLE is ready
+
+C - BLE KISS RX -> TCP
+----------------------
+Use a local KISS TCP client/APRS application pointed to:
+    host 127.0.0.1
+    port 8001
+
+1. Connect one client.
+   [ ] Clients becomes 1
+2. Transmit an APRS packet from another radio to the RT-950.
+3. Verify simultaneously:
+   [ ] normal BLE terminal RAW notification still appears
+   [ ] normal KISS/AX.25/APRS decode still works
+   [ ] TCP client receives the same KISS byte stream
+   [ ] BLE->TCP byte counter increases
+   [ ] BLE->TCP frame counter increases
+4. Repeat with a fragmented KISS frame / ordinary multi-notification packet.
+   [ ] TCP stream reconstructs correctly at the client
+   [ ] BLE notification boundaries were not treated as KISS frame boundaries
+5. If practical, connect a second local TCP client.
+   [ ] both clients receive the same BLE KISS bytes
+   [ ] one client does not consume data intended for another
+
+D - TCP KISS TX -> BLE
+----------------------
+1. From the local TCP KISS client, send one valid KISS data frame.
+2. Verify:
+   [ ] TCP->BLE byte counter increases
+   [ ] TCP->BLE frame counter increases
+   [ ] BLE written byte counter increases only after successful GATT writes
+   [ ] structured TX_RAW contains 'KISS TCP BRIDGE BLE WRITE'
+   [ ] characteristic is Auto Detect baseline FFE1 on RT-950
+3. Verify the radio/device-side result separately.
+   [ ] If RF transmission is expected, confirm RF independently on another receiver.
+
+IMPORTANT:
+A successful GATT write proves host-to-radio BLE delivery only. It does not by itself
+prove that the RT-950 accepted a KISS command at application level or transmitted RF.
+
+E - MANUAL FF31 ROUTE ISOLATION
+-------------------------------
+1. Leave RT-950 connected and bridge running.
+2. In the main manual routing controls choose RT950 OEM TEST / FF31 Write.
+3. Do NOT send the OEM test command unless separately testing it.
+4. From the TCP KISS client send another KISS frame.
+5. Verify:
+   [ ] bridge TX still targets Auto Detect baseline FFE1
+   [ ] bridge does NOT target FF31 merely because the diagnostic UI route changed
+   [ ] FFE1 Notify remains active
+   [ ] ordinary KISS RX still works
+
+F - BLE DISCONNECT / RECONNECT
+------------------------------
+1. With one TCP client connected, disconnect or power off the RT-950.
+2. Verify:
+   [ ] bridge changes to BLE SUSPENDED
+   [ ] active TCP client is closed
+   [ ] no stale BLE characteristic wrapper is used
+3. Reconnect the RT-950 and wait for RADTEL KISS READY.
+4. Verify:
+   [ ] bridge changes back to BLE READY
+   [ ] new TCP client can connect
+   [ ] old TCP session is not reused
+   [ ] RX and TX use the new connection-scoped FFE0/FFE1 objects
+
+G - BACKPRESSURE / STABILITY
+----------------------------
+Automated tests and static checks validate bounded queue architecture. Optional runtime
+stress test:
+1. Connect a deliberately non-reading/slow TCP client and create sustained BLE RX traffic.
+2. Verify:
+   [ ] application memory does not grow without bound
+   [ ] queue overflow/backpressure disconnect counter increases if the client cannot keep up
+   [ ] BLE terminal/Notification Monitor/Inspector continue operating
+3. Reconnect a normal client.
+   [ ] normal bridge traffic resumes
+
+H - WINDOW / LISTENER CLEANUP
+-----------------------------
+1. With bridge running, close KISS TCP Bridge window.
+   [ ] listener stops
+   [ ] existing TCP client disconnects
+2. Reopen the window.
+   [ ] bridge is STOPPED, not silently running in background
+3. Start again.
+   [ ] listener starts cleanly on requested endpoint
+
+PHASE G COMPLETION GATE
+-----------------------
+Do not mark Phase G COMPLETE until:
+[ ] Windows CI is fully green
+[ ] real BLE KISS RX -> TCP is verified
+[ ] real TCP KISS TX -> BLE is verified
+[ ] RT-950 FF31 manual-route isolation is verified
+[ ] BLE disconnect/reconnect behavior is verified
+[ ] no regression to Phase A BLE/CCCD/Inspector behavior is observed
+[ ] ROADMAP.txt is updated with final evidence
+
+If the implementation/CI gate passes but the real external-client/radio test has not,
+Phase G status remains HARDWARE TEST PENDING.

@@ -45,6 +45,10 @@ jobs:
         shell: pwsh
         run: python tests/PHASE_F_STATIC_CHECK.py
 
+      - name: Phase G KISS TCP bridge static checks
+        shell: pwsh
+        run: python tests/PHASE_G_STATIC_CHECK.py
+
       - name: Protocol decoder tests
         shell: pwsh
         run: dotnet run --project tests/ProtocolTests/ProtocolTests.csproj -c Release
@@ -68,6 +72,10 @@ jobs:
       - name: GATT snapshot compare tests
         shell: pwsh
         run: dotnet run --project tests/GattSnapshotTests/GattSnapshotTests.csproj -c Release
+
+      - name: KISS TCP bridge tests
+        shell: pwsh
+        run: dotnet run --project tests/KissTcpBridgeTests/KissTcpBridgeTests.csproj -c Release
 
       - name: Restore
         shell: pwsh
