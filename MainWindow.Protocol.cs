@@ -26,6 +26,7 @@ public partial class MainWindow
         {
         }
         _decodedPacketsWindow = null;
+        CloseNotificationMonitorWindow();
         base.OnClosed(e);
     }
 
