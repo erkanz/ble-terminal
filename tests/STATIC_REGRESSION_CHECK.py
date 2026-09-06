@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 main = (ROOT / 'MainWindow.xaml.cs').read_text(encoding='utf-8')
 main_protocol = (ROOT / 'MainWindow.Protocol.cs').read_text(encoding='utf-8')
 main_notifications = (ROOT / 'MainWindow.Notifications.cs').read_text(encoding='utf-8')
+main_logs = (ROOT / 'MainWindow.Logs.cs').read_text(encoding='utf-8')
 insp = (ROOT / 'GattInspectorWindow.xaml.cs').read_text(encoding='utf-8')
 insp_notifications = (ROOT / 'GattInspectorWindow.Notifications.cs').read_text(encoding='utf-8')
 models = (ROOT / 'GattInspectorModels.cs').read_text(encoding='utf-8')
@@ -16,6 +17,10 @@ aprs = (ROOT / 'AprsDecoder.cs').read_text(encoding='utf-8')
 notifications = (ROOT / 'NotificationCapture.cs').read_text(encoding='utf-8')
 notification_window = (ROOT / 'NotificationMonitorWindow.xaml.cs').read_text(encoding='utf-8')
 notification_xaml = (ROOT / 'NotificationMonitorWindow.xaml').read_text(encoding='utf-8')
+structured_log = (ROOT / 'StructuredLog.cs').read_text(encoding='utf-8')
+log_filter_engine = (ROOT / 'LogFilterEngine.cs').read_text(encoding='utf-8')
+log_filter_window = (ROOT / 'LogFilterWindow.xaml.cs').read_text(encoding='utf-8')
+log_filter_xaml = (ROOT / 'LogFilterWindow.xaml').read_text(encoding='utf-8')
 main_xaml = (ROOT / 'MainWindow.xaml').read_text(encoding='utf-8')
 
 checks = {
@@ -60,6 +65,21 @@ checks = {
     'inspector multi-characteristic capture follows active subscriptions': '_subscribedCharacteristics.ToHashSet()' in insp_notifications and 'NotificationCaptureCharacteristic_ValueChanged' in insp_notifications,
     'inspector auto terminal notifications are not double counted': 'Do not double-count the same FFE1 notification' in insp_notifications,
     'notification capture failures are isolated from BLE RX': 'must never interfere with the terminal RX path' in main_notifications and 'must never alter Inspector notification behavior' in insp_notifications,
+
+    # Phase D structured log / filters / search guards.
+    'structured log store is bounded': 'RemoveRange(0, _history.Count - _maxHistory)' in structured_log and '50000' in structured_log,
+    'structured log has required categories': all(x in structured_log for x in ['CONNECTION', 'DISCOVERY', 'GATT', 'CCCD', 'RX_RAW', 'TX_RAW', 'KISS', 'AX25', 'APRS', 'INSPECTOR', 'WARNING', 'ERROR']),
+    'Phase D captures BLE notifications independently': 'NotificationCaptureHub.Store.RecordAdded +=' in main_logs and 'LogCategory.RX_RAW' in main_logs,
+    'Phase D captures successful TX independently of local echo': 'CaptureSuccessfulTxAsync' in main_logs and 'LogCategory.TX_RAW' in main_logs,
+    'Phase D does not duplicate RT950 raw terminal rendering': '_rawTerminalMetadataLinesToSkip = 3' in main_logs,
+    'Phase D log filter engine supports text category device characteristic direction': all(x in log_filter_engine for x in ['criteria.Text', 'criteria.Category', 'criteria.Device', 'criteria.Characteristic', 'criteria.Direction']),
+    'Phase D errors warnings only filter exists': 'ErrorsWarningsOnly' in log_filter_engine and 'ErrorsWarningsOnlyCheckBox' in log_filter_window,
+    'Phase D search navigation disables auto-scroll': 'AutoScrollCheckBox.IsChecked = false' in log_filter_window and 'MoveSelection' in log_filter_window,
+    'Phase D filtered and full exports exist': 'Export filtered diagnostic log' in log_filter_window and 'Export full diagnostic log' in log_filter_window,
+    'Phase D export includes session metadata': 'SESSION METADATA' in log_filter_window and 'BuildLogSessionMetadata' in main_logs,
+    'Phase D log window is available from View menu': 'Diagnostic Log Filters / Search...' in main_xaml and 'LogFilterMenuItem_Click' in main_logs,
+    'Phase D log grid uses virtualization': 'VirtualizingPanel.VirtualizationMode="Recycling"' in log_filter_xaml,
+    'Phase D visible history is bounded': 'MaxVisibleRows = 20000' in log_filter_window,
 }
 
 for xaml in ROOT.glob('*.xaml'):
