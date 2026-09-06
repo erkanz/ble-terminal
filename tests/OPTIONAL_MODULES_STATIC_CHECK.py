@@ -25,6 +25,7 @@ checks = {
     'RT950 normal data route is FFE1': 'DATA_WRITE_UUID=FFE1' in features and 'WRITE=FFE1' in features and 'UNLOCK_WRITE=FF31' in features,
     'RT950 unlock failure retains BLE connection': 'generic BLE connection retained' in features and 'CleanupConnection()' not in features,
     'RT950 unlock response is classified without swallowing raw capture': 'CLASSIFICATION=RT950_UNLOCK_RESPONSE' in features and 'NotificationRecord record = CaptureMainNotification(sender, data);' in notifications,
+    'RT950 unlock command rows validate current data before canonical dispatch': 'ValidateRt950UnlockCommandSource' in features and 'TxPayloadBuilder.Build(row.Command' in features and 'EMPTY_COMMAND_DATA' in features and 'RT950_UNLOCK_COMMAND_DATA_MISMATCH' in features and features.find('if (!ValidateRt950UnlockCommandSource(source))') < features.find('if (IsRt950DataPathReady)'),
     'OEM handshake fixture is separated from unlock': 'PROGRAMBT9000U' not in features and 'Rt950Protocol.OemHandshake' in commands and 'TargetOverride = "FFE1"' in commands,
     'OEM ACK 06 detection is RT950 optional-module behavior': 'RT950 OEM ACK RECEIVED: 06' in features and 'IsOemAck' in feature_models,
     'FF31 safeguard applies only while RT950 tools enabled': '_optionalFeatureSettings.Rt950ToolsEnabled && BleUuid.Is(characteristic.Uuid, "FF31")' in commands and 'RT950_FF31_RESERVED_FOR_UNLOCK' in commands,
