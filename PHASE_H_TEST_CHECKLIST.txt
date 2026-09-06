@@ -4,7 +4,12 @@ Repository: https://github.com/erkanz/ble-terminal
 Phase: H - Multi-Device Live Compare
 Status: CI COMPLETE / TWO-DEVICE RUNTIME TEST PENDING
 Date: 2026-09-06
-Green PR CI: run 34037557327 / commit fa4d97af1dd0cab38a9569462111d5200271417a
+Authoritative main commit: 544605e7b4755dc77ba1440a4a555c0a1be12736
+Authoritative main CI: run 34038127391 - SUCCESS
+Artifact: 9990834350
+EXE size: 78,078,555 bytes
+EXE SHA256: d69c3357643bc6368e05da0581688cfe5a181374fa636e0e43b69cc1a82257c9
+Artifact ZIP SHA256: baf96afe3a708d965746c69dff7d7b1b5ca77d4784919e9b95d5e5f40eb9e0b0
 
 PURPOSE
 -------
@@ -26,14 +31,15 @@ NON-NEGOTIABLE ISOLATION RULES
 [x] MainWindow NotificationCaptureHub is not used as a substitute for per-device compare RX.
 [x] Disconnect/reconnect creates a fresh connection generation and stale routes are rejected.
 [x] No Device A characteristic wrapper can be used for Device B TX by design.
+[x] Main terminal's currently owned BLE address is blocked from duplicate compare ownership.
 [x] Closing the compare window disposes all compare sessions.
 
 AUTOMATED / CI GATE
 -------------------
 [x] existing static regression PASS
 [x] Phase F static checks PASS
-[x] Phase G static checks PASS
-[x] Phase H isolation static checks PASS - 22 checks
+[x] Phase G static checks PASS - 25 checks
+[x] Phase H isolation static checks PASS - 24 checks
 [x] protocol tests PASS - 40 checks
 [x] notification tests PASS - 15 checks
 [x] log filter tests PASS - 14 checks
@@ -46,12 +52,8 @@ AUTOMATED / CI GATE
 [x] Windows x64 self-contained publish PASS
 [x] EXE + SHA256 generated
 [x] artifact upload PASS
-
-Green implementation build evidence:
-    run: 34037557327
-    artifact: 9990664978
-    EXE size: 78,078,258 bytes
-    EXE SHA256: f2b3e5c22035273647da9f5dd79be5dc32fa01d4dd61f302c48a210442133dc3
+[x] validated source merged to main
+[x] authoritative main Windows CI green
 
 A - WINDOW / SCAN
 -----------------
@@ -82,6 +84,9 @@ Use two supported BLE-UART devices. Preferred first test:
    [ ] B profile/service/write/notify/CCCD fields are correct
 3. Confirm session rows have different SessionId-backed live state.
 4. Confirm the main terminal connection, if present, still works.
+5. If the main terminal already owns one physical BLE address:
+   [ ] compare window refuses a second ownership context for that same address
+   [ ] other BLE addresses remain connectable
 
 C - RX ISOLATION
 ----------------
@@ -136,9 +141,10 @@ F - DISCONNECT / RECONNECT ISOLATION
 1. Disconnect Device A while Device B remains READY.
    [ ] A becomes DISCONNECTED
    [ ] B remains READY and continues RX
-2. Reconnect Device A using a fresh compare connection.
+2. Select Device A again and reconnect.
    [ ] A returns READY
-   [ ] stale A wrappers are not reused
+   [ ] fresh connection-scoped wrappers are created
+   [ ] stale queued route cannot execute
    [ ] B wrappers/session remain unchanged
 3. Power-cycle Device B.
    [ ] B shows disconnect independently
@@ -168,8 +174,8 @@ If four BLE devices are available:
 PHASE H COMPLETION GATE
 -----------------------
 Do not mark Phase H COMPLETE until:
-[x] Windows PR CI is fully green
-[ ] validated source is merged to main and main CI is green
+[x] Windows CI is fully green
+[x] validated source is merged to main and main CI is green
 [ ] two real devices can be connected simultaneously
 [ ] A-only RX does not change B state
 [ ] B-only RX does not change A state
@@ -179,4 +185,4 @@ Do not mark Phase H COMPLETE until:
 [ ] compare window cleanup leaves no stale live wrappers/subscriptions
 [ ] ROADMAP.txt records final runtime evidence
 
-Until the real two-device test is complete, Phase H status remains HARDWARE TEST PENDING.
+Until the real two-device test is complete, Phase H status remains TWO-DEVICE RUNTIME TEST PENDING.
