@@ -8,17 +8,20 @@ This repository is the **canonical source and build location** for the project.
 
 Current baseline: **v13 RT-950 GATT Cache / FFE1 Notify Fix**
 
-Current roadmap phase: **Phase B — KISS / AX.25 / APRS Decoder**
+Current release gate: **Phase B — KISS / AX.25 / APRS Decoder hardware validation**
 
 **Phase A is complete.** The RT-950 FFE0/FFE1 cache, CCCD, raw notification, fragmented KISS reassembly, and GATT Inspector lifecycle baseline was qualified on real hardware.
 
-Phase B implementation and automated tests are green. The remaining Phase B gate is a real RT-950 end-to-end packet check in the new decoded-packet window.
+Phase B implementation and automated tests are green. The remaining Phase B gate is a real RT-950 end-to-end packet check in the decoded-packet window.
+
+**Phase C — Notification Monitor is implemented and CI-green in parallel, but remains hardware/functional-test pending until it is exercised on the RT-950.**
 
 Project continuity and phase rules are maintained in:
 
 - `ROADMAP.txt`
 - `RT950_TEST_CHECKLIST.txt`
 - `PHASE_B_TEST_CHECKLIST.txt`
+- `PHASE_C_TEST_CHECKLIST.txt`
 
 ## Current capabilities
 
@@ -93,6 +96,41 @@ The packet viewer shows:
 
 Packet details can be copied or exported. The decoded packet history is bounded so it does not grow indefinitely.
 
+### BLE Notification Monitor
+
+Open:
+
+**View → BLE Notification Monitor...**
+
+The monitor is a diagnostic capture path independent from the scrolling terminal view. It records BLE notification/indication events with:
+
+- monotonic sequence number
+- timestamp
+- device
+- service UUID
+- characteristic UUID
+- source/reused metadata
+- Notify / Indicate mode
+- byte length
+- HEX
+- ASCII-safe rendering
+- related KISS-frame count when applicable
+- total byte/notification counters
+- per-characteristic counters
+
+Monitor behavior:
+
+- **Pause display** stops UI updates only; capture continues in the bounded background store
+- Resume rebuilds the visible list from captured history
+- Clear resets monitor capture history/counters only
+- Copy HEX / Copy text
+- TSV export
+- DataGrid virtualization and bounded visible history for sustained traffic
+- main terminal FFE1 capture uses an independent ValueChanged observer and independent KISS decoder
+- Inspector multi-characteristic subscriptions can also feed the monitor without creating an extra CCCD subscription
+- Auto Detect FFE1 reused by Inspector is not intentionally double-counted
+- monitor exceptions are isolated from terminal/Inspector RX processing
+
 ### Terminal / UI
 
 - Full dark mode and dark scrollbars
@@ -106,7 +144,7 @@ Packet details can be copied or exported. The decoded packet history is bounded 
 
 ## Canonical Windows build
 
-GitHub Actions is the primary build path. Every push to `main`, pull request, and manual workflow run executes regression checks, Phase B protocol tests, and builds the Windows x64 application on a real Windows runner.
+GitHub Actions is the primary build path. Every push to `main`, pull request, and manual workflow run executes static regression checks, Phase B protocol tests, Phase C notification-capture tests, and builds the Windows x64 application on a real Windows runner.
 
 Open:
 
@@ -153,6 +191,16 @@ APRS RX TYPE=... SUMMARY=...
 
 6. verify the decoded-packet row shows source, destination, path, type/summary and preserves the original KISS/APRS data
 
+## Phase C validation
+
+Use the same newest successful `main` Actions artifact and follow:
+
+```text
+PHASE_C_TEST_CHECKLIST.txt
+```
+
+At minimum, verify FFE1 notifications appear in **View → BLE Notification Monitor...**, Pause display does not stop capture counters, Resume shows captured backlog, and opening/closing GATT Inspector does not duplicate or break the main FFE1 RX path.
+
 ## Local Windows publish
 
 With .NET 8 SDK installed:
@@ -193,4 +241,4 @@ RADTEL KISS READY
 RAW BLE NOTIFICATION
 ```
 
-See `RT950_TEST_CHECKLIST.txt`, `PHASE_A_RT950_SESSION_2026-09-06.txt`, `PHASE_B_TEST_CHECKLIST.txt`, and `V13_RT950_GATT_CACHE_FIX.txt` for current diagnostics and regression expectations.
+See `RT950_TEST_CHECKLIST.txt`, `PHASE_A_RT950_SESSION_2026-09-06.txt`, `PHASE_B_TEST_CHECKLIST.txt`, `PHASE_C_TEST_CHECKLIST.txt`, and `V13_RT950_GATT_CACHE_FIX.txt` for current diagnostics and regression expectations.
