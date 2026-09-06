@@ -1,0 +1,76 @@
+BLE Serial Terminal v13 - RT-950 GATT Cache / Notify Fix
+=========================================================
+
+GOAL
+----
+Prevent a second FFE0 characteristic enumeration from turning an already-valid Auto Detect
+FFE1 object into a false "FFE1 absent" result, and make RT-950 FFE1 notification state
+observable end-to-end.
+
+AUTO DETECT CACHE
+-----------------
+- The selected GattDeviceService, write characteristic, notify characteristic, and all
+  characteristics already discovered on the selected service are retained for the lifetime
+  of the connection in AutoDetectedGattContext.
+- FFE0/FFE1 shared RX/TX is supported as one characteristic object.
+- A fresh AutoDetectedGattContext is created after disconnect/reconnect; stale GATT wrappers
+  are never reused across connections.
+
+INSPECTOR REUSE / OWNERSHIP
+---------------------------
+- GATT Inspector receives the live AutoDetectedGattContext and the same GATT operation gate.
+- When service UUID matches the Auto Detect service, Inspector DOES NOT call
+  GetCharacteristicsAsync again. It builds the tree from cached characteristic objects.
+- Returned duplicate service wrappers are disposed, but the Auto Detect service itself is
+  marked OwnsService=false and is never disposed by Inspector.
+- Tree rows show Source=AUTO-DETECT/REUSED and Reused=Yes.
+- FFE1 presence is computed from the cache too, so a later AccessDenied/partial discovery
+  cannot create a false FFE1 present=NO.
+
+FFE1 NOTIFY / CCCD
+------------------
+- Main terminal attaches ValueChanged before writing CCCD and guards against duplicate
+  handler attachment.
+- Main terminal uses WriteClientCharacteristicConfigurationDescriptorWithResultAsync and
+  logs status, numeric status code and ATT protocol error.
+- Only Success marks FFE1 CCCD active.
+- If RT-950 CCCD fails, BLE stays connected so Inspector can be opened for diagnostics.
+- If Inspector opens while the main FFE1 CCCD is already active, it attaches only its local
+  ValueChanged handler and reuses the active CCCD instead of writing it again.
+- If main CCCD failed, Inspector can retry the CCCD write on the cached FFE1 object. A
+  successful Inspector retry updates the main RT950 KISS ready state.
+
+RAW RX / KISS
+-------------
+- RT-950 FFE1 ValueChanged bytes are logged as RAW BLE NOTIFICATION before KISS parsing.
+- KISS decoder state survives BLE notification boundaries.
+- FEND/FESC/TFEND/TFESC unescaping remains enabled.
+
+OPERATION SERIALIZATION
+-----------------------
+- Main terminal and Inspector now share one SemaphoreSlim for GATT discovery/read/write/CCCD
+  operations. Notification callbacks are not put through this semaphore.
+
+RT-950 PROFILE
+--------------
+- FFE0 + shared FFE1 Notify/Write remains compatible with HM-10 style transport.
+- To avoid mislabelling genuine HM-10 modules, the explicit RADTEL_RT950_KISS profile name is
+  promoted when the FFE0/FFE1 signature is present and the connected device name identifies
+  the RT-950 family (walkie-talkie / RT950 / RT-950 / RADTEL).
+- Nordic NUS, generic BLE-UART, HM-10 and custom UUID paths are otherwise unchanged.
+
+FILES CHANGED / ADDED
+---------------------
+Modified:
+- MainWindow.xaml.cs
+- GattInspectorWindow.xaml
+- GattInspectorWindow.xaml.cs
+- GattInspectorModels.cs
+- BleUuid.cs
+- RT950_TEST_CHECKLIST.txt
+- GATT_INSPECTOR_NOTES.txt
+- README.md
+
+Added:
+- AutoDetectedGattContext.cs
+- V13_RT950_GATT_CACHE_FIX.txt

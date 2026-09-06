@@ -1,0 +1,30 @@
+BLE Serial Terminal v12 - UI / Menu update
+==========================================
+
+Changes
+-------
+- Local echo default: OFF.
+- Line ending default: LF.
+- TX Enter key now uses PreviewKeyDown and always sends the current TX buffer.
+- Added top application menu:
+  File -> Export Log...
+  View -> Dark mode
+  View -> Serial output background...
+  View -> Serial output text color...
+  View -> Reset serial output colors
+  About -> About BLE Serial Terminal
+- Removed the Dark mode checkbox from the device toolbar.
+- Added a WPF-native color picker dialog with HEX input, presets and live preview.
+- Custom serial output background/text colors persist under LocalAppData/BLESerialTerminal.
+- Theme changes preserve custom terminal colors until Reset serial output colors is selected.
+- Existing Auto Detect BLE-UART, GATT Inspector, dark scrollbars, icon and self-contained publish behavior are preserved.
+
+Quick test
+----------
+1. Launch: Local echo must be unchecked; Line ending must show LF.
+2. Connect to BLE UART, type a command and press Enter: TX must occur without clicking Send.
+3. View -> Dark mode must toggle the complete theme.
+4. View -> Serial output background/text color must update the RX terminal immediately.
+5. Restart app: selected terminal colors must persist.
+6. View -> Reset serial output colors must restore the current theme's defaults.
+7. File -> Export Log must save a TXT/log file containing connection state, RX/TX counters and terminal text.

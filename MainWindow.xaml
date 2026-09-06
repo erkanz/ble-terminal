@@ -1,0 +1,180 @@
+<Window x:Class="BLESerialTerminal.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BLE Serial Terminal" Height="780" Width="1180"
+        Icon="Assets/BLESerialTerminal.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
+        MinHeight="650" MinWidth="980"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel Background="{DynamicResource WindowBackgroundBrush}">
+        <Menu DockPanel.Dock="Top" Height="28" Background="{DynamicResource PanelBackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}">
+            <MenuItem Header="_File">
+                <MenuItem Header="Export Log..." Click="ExportLogMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem x:Name="DarkModeMenuItem" Header="Dark mode" IsCheckable="True" Click="DarkModeMenuItem_Click"/>
+                <Separator/>
+                <MenuItem Header="Serial output background..." Click="TerminalBackgroundMenuItem_Click"/>
+                <MenuItem Header="Serial output text color..." Click="TerminalForegroundMenuItem_Click"/>
+                <MenuItem Header="Reset serial output colors" Click="ResetTerminalColorsMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_About">
+                <MenuItem Header="About BLE Serial Terminal" Click="AboutMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Margin="12" Background="{DynamicResource WindowBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="220"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="110"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Device filter:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox x:Name="FilterTextBox" Grid.Column="1" Height="28" VerticalContentAlignment="Center" Margin="0,0,10,0"
+                         ToolTip="Optional name/address filter" TextChanged="FilterTextBox_TextChanged"/>
+                <Button x:Name="ScanButton" Grid.Column="2" Content="Scan" Width="90" Height="30" Margin="0,0,8,0" Click="ScanButton_Click"/>
+                <Button x:Name="ConnectButton" Grid.Column="3" Content="Connect" Width="100" Height="30" Margin="0,0,8,0" Click="ConnectButton_Click"/>
+                <Button x:Name="DisconnectButton" Grid.Column="4" Content="Disconnect" Width="100" Height="30" Margin="0,0,8,0" Click="DisconnectButton_Click" IsEnabled="False"/>
+                <Button x:Name="GattInspectorButton" Grid.Column="5" Content="GATT Inspector" Width="110" Height="30" Margin="0,0,10,0" Click="GattInspectorButton_Click" IsEnabled="False"/>
+                <CheckBox x:Name="AutoReconnectCheckBox" Grid.Column="6" Content="Auto reconnect" VerticalAlignment="Center" IsChecked="True"/>
+            </Grid>
+        </Border>
+
+        <DataGrid x:Name="DeviceGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Single" SelectionUnit="FullRow" Margin="0,0,0,8"
+                  MouseDoubleClick="DeviceGrid_MouseDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="BLE Address" Binding="{Binding AddressText}" Width="180"/>
+                <DataGridTextColumn Header="RSSI" Binding="{Binding RssiText}" Width="90"/>
+                <DataGridTextColumn Header="Last seen" Binding="{Binding LastSeenText}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Expander Grid.Row="2" Header="GATT / UART profile" IsExpanded="False" Margin="0,0,0,8">
+            <Border Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,6,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <CheckBox x:Name="AutoDetectGattCheckBox" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4"
+                              Content="Auto detect BLE-UART GATT profile (recommended)" IsChecked="True" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Service UUID:" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                    <TextBox x:Name="ServiceUuidTextBox" Grid.Row="1" Grid.Column="1" Margin="0,0,12,6" Text="6E400001-B5A3-F393-E0A9-E50E24DCCA9E"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Write UUID:" VerticalAlignment="Center" Margin="0,0,8,6"/>
+                    <TextBox x:Name="WriteUuidTextBox" Grid.Row="1" Grid.Column="3" Margin="0,0,0,6" Text="6E400002-B5A3-F393-E0A9-E50E24DCCA9E"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Notify UUID:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="NotifyUuidTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,12,0" Text="6E400003-B5A3-F393-E0A9-E50E24DCCA9E"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="TX chunk bytes:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="ChunkSizeTextBox" Grid.Row="2" Grid.Column="3" Width="70" HorizontalAlignment="Left" Text="20"/>
+                </Grid>
+            </Border>
+        </Expander>
+
+        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <TextBlock Text="RX view:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="RxViewComboBox" Width="100" SelectedIndex="0">
+                            <ComboBoxItem Content="ASCII"/>
+                            <ComboBoxItem Content="HEX"/>
+                            <ComboBoxItem Content="ASCII + HEX"/>
+                        </ComboBox>
+                        <CheckBox x:Name="TimestampCheckBox" Content="Timestamp" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="True"/>
+                        <CheckBox x:Name="AutoScrollCheckBox" Content="Auto scroll" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="True"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                        <Button Content="Clear RX" Width="90" Margin="0,0,8,0" Click="ClearRxButton_Click"/>
+                        <Button Content="Save log" Width="90" Click="SaveLogButton_Click"/>
+                    </StackPanel>
+                </DockPanel>
+                <TextBox x:Name="TerminalTextBox" Grid.Row="1" FontFamily="Consolas" FontSize="13"
+                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="{DynamicResource TerminalBackgroundBrush}" Foreground="{DynamicResource TerminalForegroundBrush}" Padding="8"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="TX mode:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="TxModeComboBox" Grid.Column="1" Width="85" SelectedIndex="0" Margin="0,0,12,0">
+                    <ComboBoxItem Content="ASCII"/>
+                    <ComboBoxItem Content="HEX"/>
+                </ComboBox>
+                <TextBlock Grid.Column="2" Text="Line ending:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="LineEndingComboBox" Grid.Column="3" Width="85" SelectedIndex="2" Margin="0,0,12,0">
+                    <ComboBoxItem Content="None"/>
+                    <ComboBoxItem Content="CR"/>
+                    <ComboBoxItem Content="LF"/>
+                    <ComboBoxItem Content="CRLF"/>
+                </ComboBox>
+                <TextBlock Grid.Column="4" Text="Enter sends in the TX box. HEX accepts: 01 A0 FF or 01A0FF" Foreground="{DynamicResource MutedForegroundBrush}" VerticalAlignment="Center"/>
+                <CheckBox x:Name="LocalEchoCheckBox" Grid.Column="5" Content="Local echo" VerticalAlignment="Center" IsChecked="False"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="5" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="110"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="TxTextBox" Grid.Column="0" FontFamily="Consolas" FontSize="13" AcceptsReturn="False"
+                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Padding="8" PreviewKeyDown="TxTextBox_PreviewKeyDown"/>
+            <Button x:Name="SendButton" Grid.Column="1" Content="Send" Margin="8,0,0,0" Click="SendButton_Click" IsEnabled="False"/>
+        </Grid>
+
+        <StatusBar Grid.Row="6">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusTextBlock" Text="Ready"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <TextBlock x:Name="ConnectionTextBlock" Text="Disconnected"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock x:Name="CountersTextBlock" Text="RX 0 B   TX 0 B"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+    </DockPanel>
+</Window>

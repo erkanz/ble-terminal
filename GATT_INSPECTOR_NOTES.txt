@@ -1,0 +1,26 @@
+BLE Serial Terminal v13 - GATT Inspector / RT-950 cache behavior
+===============================================================
+
+The Inspector no longer treats a second enumeration as the source of truth for the Auto Detect
+service. Auto Detect is the owner of its live service/characteristic objects for the whole BLE
+connection. Inspector borrows/reuses them and never disposes them.
+
+For the cached Auto Detect service:
+- GetCharacteristicsAsync is not repeated.
+- all characteristics already discovered during Auto Detect are reused in the Inspector tree.
+- selected write/notify characteristics are guaranteed to be present in the cache.
+- Source=AUTO-DETECT/REUSED and Reused=Yes are visible.
+- active main-terminal CCCD is reused rather than rewritten.
+
+Other services are still enumerated normally, so Inspector remains a complete GATT browser as far
+as Windows permits. Any AccessDenied result is logged with numeric GattCommunicationStatus and
+protocol error when exposed.
+
+The main terminal and Inspector share one SemaphoreSlim for discovery/read/write/CCCD operations.
+ValueChanged notifications remain asynchronous and are not blocked by the operation gate.
+
+Windows WinRT CCCD subscription uses:
+WriteClientCharacteristicConfigurationDescriptorWithResultAsync(...)
+
+The handler is attached before CCCD write. Only a Success result marks the receive data channel
+ready. RT-950 raw FFE1 bytes are logged before being passed to the persistent KISS stream decoder.

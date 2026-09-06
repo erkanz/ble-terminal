@@ -1,0 +1,155 @@
+<Window x:Class="BLESerialTerminal.GattInspectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GATT Inspector" Width="1220" Height="820" MinWidth="980" MinHeight="650"
+        Icon="Assets/BLESerialTerminal.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
+        WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style TargetType="TreeViewItem">
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="Margin" Value="1"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource SelectionForegroundBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="240"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="9" Margin="0,0,0,8">
+            <DockPanel LastChildFill="True">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button x:Name="RefreshButton" Content="Refresh discovery" Width="125" Margin="8,0,0,0" Click="RefreshButton_Click"/>
+                    <Button Content="Export Log" Width="95" Margin="8,0,0,0" Click="ExportLogButton_Click"/>
+                    <Button Content="Close" Width="80" Margin="8,0,0,0" Click="CloseButton_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="DeviceHeaderText" FontWeight="SemiBold" VerticalAlignment="Center" Text="GATT Inspector"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="BleStateText" Grid.Row="0" Grid.Column="0" Text="BLE: -"/>
+                <TextBlock x:Name="GattStateText" Grid.Row="0" Grid.Column="1" Text="GATT: -"/>
+                <TextBlock x:Name="NotifyStateText" Grid.Row="0" Grid.Column="2" Text="Notify: 0"/>
+                <TextBlock x:Name="DataStateText" Grid.Row="0" Grid.Column="3" Text="Data: NO"/>
+                <TextBlock x:Name="MtuStateText" Grid.Row="0" Grid.Column="4" Text="MTU/PDU: OS-managed" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="Ffe1StateText" Grid.Row="1" Grid.Column="0" Margin="0,6,0,0" Text="FFE1: -"/>
+                <TextBlock x:Name="Ffe1HandlerStateText" Grid.Row="1" Grid.Column="1" Margin="0,6,0,0" Text="FFE1 Handler: -"/>
+                <TextBlock x:Name="Ffe1CccdStateText" Grid.Row="1" Grid.Column="2" Margin="0,6,0,0" Text="FFE1 CCCD: -"/>
+                <TextBlock x:Name="Rt950StateText" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" Margin="0,6,0,0" Text="RT950 KISS: -" HorizontalAlignment="Right"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="1.4*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="6" Margin="0,0,8,0">
+                <TreeView x:Name="GattTree" Background="{DynamicResource PanelBackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}" SelectedItemChanged="GattTree_SelectedItemChanged"/>
+            </Border>
+
+            <Border Grid.Column="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Selected characteristic" FontWeight="SemiBold" FontSize="15"/>
+                        <TextBlock x:Name="SelectedUuidText" Text="Select a characteristic from the tree." Margin="0,5,0,10" TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Properties" FontWeight="SemiBold"/>
+                        <UniformGrid Columns="2" Margin="0,5,0,10">
+                            <CheckBox x:Name="PropBroadcast" Content="Broadcast" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropRead" Content="Read" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropWriteNoResponse" Content="Write Without Response" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropWrite" Content="Write" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropNotify" Content="Notify" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropIndicate" Content="Indicate" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropSignedWrite" Content="Authenticated Signed Writes" IsHitTestVisible="False"/>
+                            <CheckBox x:Name="PropExtended" Content="Extended Properties" IsHitTestVisible="False"/>
+                        </UniformGrid>
+
+                        <TextBlock Text="Descriptors" FontWeight="SemiBold"/>
+                        <ListBox x:Name="DescriptorList" Height="80" Margin="0,5,0,10" Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}" BorderBrush="{DynamicResource BorderBrush}"/>
+
+                        <WrapPanel Margin="0,0,0,10">
+                            <Button x:Name="ReadButton" Content="Read" Width="90" Margin="0,0,7,7" Click="ReadButton_Click" IsEnabled="False"/>
+                            <Button x:Name="EnableNotifyButton" Content="Enable Notify" Width="110" Margin="0,0,7,7" Click="EnableNotifyButton_Click" IsEnabled="False"/>
+                            <Button x:Name="DisableNotifyButton" Content="Disable Notify" Width="110" Margin="0,0,7,7" Click="DisableNotifyButton_Click" IsEnabled="False"/>
+                            <Button x:Name="EnableIndicateButton" Content="Enable Indicate" Width="110" Margin="0,0,7,7" Click="EnableIndicateButton_Click" IsEnabled="False"/>
+                            <Button x:Name="DisableIndicateButton" Content="Disable Indicate" Width="110" Margin="0,0,7,7" Click="DisableIndicateButton_Click" IsEnabled="False"/>
+                        </WrapPanel>
+
+                        <Separator Margin="0,2,0,10"/>
+                        <TextBlock Text="Manual write" FontWeight="SemiBold"/>
+                        <Grid Margin="0,6,0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Mode:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="WriteModeCombo" Grid.Column="1" SelectedIndex="0">
+                                <ComboBoxItem Content="ASCII"/>
+                                <ComboBoxItem Content="HEX"/>
+                                <ComboBoxItem Content="UTF-8"/>
+                            </ComboBox>
+                            <TextBlock Grid.Column="2" Text="Write type:" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                            <ComboBox x:Name="WriteTypeCombo" Grid.Column="3" SelectedIndex="0">
+                                <ComboBoxItem Content="With Response"/>
+                                <ComboBoxItem Content="Without Response"/>
+                            </ComboBox>
+                        </Grid>
+                        <TextBox x:Name="WriteInputText" Height="70" AcceptsReturn="True" FontFamily="Consolas" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                        <WrapPanel Margin="0,7,0,0">
+                            <Button x:Name="WriteButton" Content="Write" Width="90" Margin="0,0,7,0" Click="WriteButton_Click" IsEnabled="False"/>
+                            <Button x:Name="Rt950BaudButton" Content="RT-950: AT+BAUD?" Width="145" Click="Rt950BaudButton_Click" Visibility="Collapsed"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="0,0,0,5">
+                    <TextBlock Text="Inspector / GATT debug log" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="RxBytesText" DockPanel.Dock="Right" HorizontalAlignment="Right" Text="RX Bytes: 0"/>
+                </DockPanel>
+                <TextBox x:Name="InspectorLogTextBox" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         FontFamily="Consolas" FontSize="12" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         Background="{DynamicResource TerminalBackgroundBrush}" Foreground="{DynamicResource TerminalForegroundBrush}" Padding="7"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

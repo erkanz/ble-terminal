@@ -1,0 +1,8 @@
+BLE Serial Terminal v8 scrollbar theme fix
+
+- Replaces native Windows/WPF light scrollbar visuals with a custom theme-aware template.
+- Vertical and horizontal scrollbar tracks follow dark/light mode.
+- Scroll thumb uses dark gray in dark mode, lighter gray in light mode.
+- Thumb hover is highlighted; dragging uses the app accent color.
+- Applies globally to TextBox, DataGrid, ComboBox dropdowns and other ScrollViewer-hosted controls.
+- Existing icon, full dark mode, RX line buffering and self-contained win-x64 publish settings are preserved.

@@ -1,0 +1,14 @@
+Ubuntu Server -> Windows x64 EXE
+================================
+
+cd /home/ble/BLESerialTerminal
+chmod +x PUBLISH_WIN64_FROM_UBUNTU.sh
+./PUBLISH_WIN64_FROM_UBUNTU.sh
+
+NOTE:
+Ubuntu/Canonical's distro .NET SDK may omit Microsoft.NET.Sdk.WindowsDesktop.
+The script detects that case and installs Microsoft's official .NET 8 SDK locally
+under ./.dotnet-ms without replacing or removing the system dotnet installation.
+
+Output:
+publish/win-x64/BLESerialTerminal.exe

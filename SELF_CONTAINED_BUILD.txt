@@ -1,0 +1,16 @@
+Ubuntu VPS -> Windows x64 SELF-CONTAINED SINGLE EXE
+
+cd /home/ble/BLESerialTerminal
+chmod +x PUBLISH_WIN64_FROM_UBUNTU.sh
+./PUBLISH_WIN64_FROM_UBUNTU.sh
+
+Output:
+publish/win-x64/BLESerialTerminal.exe
+
+Properties:
+- win-x64
+- self-contained
+- single-file
+- bundled .NET runtime
+- Windows 10/11 x64
+- no separate .NET installation required

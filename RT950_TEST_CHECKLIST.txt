@@ -1,0 +1,82 @@
+RT-950 PRO v13 CACHE / FFE1 NOTIFY TEST CHECKLIST
+=================================================
+
+BUILD
+[ ] Run ./PUBLISH_WIN64_FROM_UBUNTU.sh
+[ ] publish/win-x64/BLESerialTerminal.exe is produced
+[ ] Self-contained EXE starts on Windows 10/11 x64 without separate .NET runtime
+
+RADTEL SETTINGS
+[ ] Bluetooth = ON
+[ ] TNC Type = KISS(BLE)
+[ ] Reporting APP = Both
+
+CONNECT / AUTO DETECT
+[ ] Scan finds walkie-talkie / RT-950
+[ ] Connect succeeds
+[ ] Log contains AUTO GATT
+[ ] profile=RADTEL_RT950_KISS
+[ ] service=FFE0
+[ ] write=FFE1
+[ ] notify=FFE1
+[ ] sameCharacteristic=true
+[ ] FFE1 PROPERTIES is logged
+[ ] FFE1 VALUECHANGED HANDLER ATTACHED is logged exactly once per connection
+[ ] FFE1 CCCD WRITE START is logged
+[ ] FFE1 CCCD WRITE RESULT=Success is logged
+[ ] FFE1 NOTIFY ACTIVE is logged only after Success
+[ ] RADTEL KISS READY is logged
+
+STATE MACHINE
+[ ] BLE state = CONNECTED
+[ ] GATT state = DISCOVERED
+[ ] FFE1 = FOUND
+[ ] FFE1 Handler = YES
+[ ] FFE1 CCCD = SUCCESS
+[ ] RT950 KISS = READY
+[ ] If CCCD fails, RT950 KISS remains NOT READY and connection remains available for Inspector
+
+GATT INSPECTOR CACHE REUSE
+[ ] Open GATT Inspector after Auto Detect connection
+[ ] Log contains AUTO TERMINAL SUBSCRIPTION PROTECTED service=FFE0 notify=FFE1
+[ ] SERVICE FFE0 shows Source=AUTO-DETECT/REUSED
+[ ] FFE1 characteristic shows Source=AUTO-DETECT/REUSED and Reused=Yes
+[ ] Log contains FFE0 ENUMERATION SKIPPED TO AVOID SECOND GetCharacteristicsAsync
+[ ] Inspector does NOT issue a second GetCharacteristicsAsync for cached FFE0
+[ ] Inspector reports FFE1 present: YES (from Auto Detect cache)
+[ ] FF31/FF32 may be YES or NO; neither is required for RT950 KISS readiness
+[ ] Closing/refreshing Inspector does not disable the main terminal FFE1 CCCD
+[ ] Cached service is not disposed by Inspector
+
+ACCESSDENIED REGRESSION
+[ ] No false FFE1 present: NO occurs after FFE0 AccessDenied/partial discovery
+[ ] If global service discovery is partial/fails but Auto cache is valid, cached FFE1 remains shown
+[ ] CCCD AccessDenied logs characteristic/service/source/connection/session/status
+[ ] Exception path logs HRESULT when available
+
+RAW NOTIFICATION / KISS
+[ ] Send an APRS packet from another radio
+[ ] RT-950 itself decodes/receives the packet
+[ ] Windows log contains RAW BLE NOTIFICATION
+[ ] RAW log UUID=FFE1
+[ ] RAW log has LEN and HEX before any KISS RX output
+[ ] Fragmented C0...C0 KISS frame across multiple BLE notifications is reassembled
+[ ] KISS RX shows SOURCE=FFE1, LEN, PORT/CMD, RAW HEX, UNESCAPED
+[ ] Malformed/non-KISS bytes still appear in RAW BLE NOTIFICATION log
+
+INSPECTOR SUBSCRIPTION RECOVERY
+[ ] If initial main CCCD failed, open Inspector and select cached FFE1
+[ ] Enable Notify performs CCCD write on the cached FFE1 object
+[ ] Success updates main state to RT950 KISS READY
+[ ] If main CCCD is already active, Inspector Enable Notify skips duplicate CCCD write and only attaches its local handler
+
+ESP32 / OTHER BLE UART REGRESSION
+[ ] Nordic NUS Auto Detect still connects and RX/TX works
+[ ] ESP32 custom BLE-UART Auto Detect still connects and RX/TX works
+[ ] HM-10 FFE0/FFE1 still connects and is not forced to RT950 profile unless device identity matches RT950
+[ ] Manual Custom UUID mode still works
+
+OPERATION SERIALIZATION
+[ ] Main TX and Inspector read/write/CCCD/discovery do not overlap as independent GATT operations
+[ ] Notification callbacks continue while queued operations execute
+[ ] No GATT_BUSY-style behavior caused by concurrent app operations
