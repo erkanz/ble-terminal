@@ -9,18 +9,20 @@ Project role: Native Windows BLE/GATT serial terminal, KISS/APRS diagnostic and 
 
 ROADMAP REVISION
 ----------------
-Roadmap revision: 1
+Roadmap revision: 2
 Last updated: 2026-09-06
 Current baseline: v13 RT-950 GATT Cache / FFE1 Notify Fix
-Current roadmap phase: PHASE A - v13 hardware qualification and baseline freeze
-Last known green repository state at roadmap creation:
-- main includes the materialized v13 source tree
-- GitHub Actions run 34012681496 completed SUCCESS
+Current roadmap phase: PHASE B - KISS / AX.25 / APRS Decoder
+Last known green repository/build state:
+- main contains the materialized v13 source tree with no bootstrap dependency
+- clean canonical GitHub Actions run 34013751226 completed SUCCESS
+- documentation/current-main build run 34013824529 completed SUCCESS
 - Windows x64 self-contained single-file publish completed SUCCESS
 - EXE verification and SHA-256 generation completed SUCCESS
 - artifact upload completed SUCCESS
-- obsolete malformed icon bootstrap asset removed
-- latest commit at roadmap creation: d4e5130d0232517b87c905d7f41a87fe15cb983e
+- RT-950 hardware qualification A1/A2/A3 passed on 2026-09-06
+- Inspector refresh/close followed by real APRS RX also passed
+- Phase A checklist finalized in RT950_TEST_CHECKLIST.txt
 
 IMPORTANT:
 This file is the persistent handoff document for future ChatGPT chats.
@@ -328,80 +330,54 @@ BLOCKED
 
 ----------------------------------------------------------------------
 PHASE A - v13 HARDWARE QUALIFICATION + BASELINE FREEZE
-STATUS: IN PROGRESS
-PRIORITY: IMMEDIATE
+STATUS: COMPLETE
+PRIORITY: COMPLETE
 ----------------------------------------------------------------------
 
 Purpose:
 Turn the current v13 code/CI state into a trusted hardware-qualified baseline
 before building major new analysis features.
 
-Already true:
-- source tree is on GitHub main
-- Windows GitHub Actions build works
-- self-contained EXE publish works
-- static regression checks pass
-- v13 cache/ownership implementation is present
-- final post-migration CI run is green
+Verified baseline:
+[x] source tree is on GitHub main
+[x] canonical Windows GitHub Actions build works
+[x] self-contained single-file EXE publish works
+[x] static regression checks pass
+[x] v13 cache/ownership implementation is present
+[x] RT-950 Auto Detect identifies RADTEL_RT950_KISS
+[x] service=FFE0, write=FFE1, notify=FFE1, sameCharacteristic=true
+[x] FFE1 handler attaches once
+[x] real CCCD write returns Success before READY
+[x] real RAW BLE notifications arrive on FFE1
+[x] fragmented BLE notifications reassemble into complete KISS frames
+[x] Inspector reuses cached FFE0/FFE1 objects
+[x] second cached FFE0 GetCharacteristicsAsync is skipped
+[x] no false FFE1 present:NO occurs in the successful path
+[x] active FFE1 subscription is reused without duplicate CCCD write
+[x] Inspector refresh/close does not stop subsequent real APRS RX
+[x] exported RT-950 hardware evidence was recorded in the repository
+[x] RT950_TEST_CHECKLIST.txt updated with real results
 
-Required remaining validation:
+Documented but not reproduced / not requalified:
+- forced CCCD failure-recovery path: NOT REPRODUCED
+- AccessDenied failure path: NOT REPRODUCED in successful hardware session
+- Nordic NUS / ESP32 / HM-10 / manual Custom UUID hardware were not requalified in
+  this Phase A session; these remain mandatory regression sentinels for later changes
+- deliberate malformed/non-KISS byte injection was not required for Phase A freeze
 
-A1 - RT-950 AUTO DETECT
-[ ] scan finds walkie-talkie / RT-950
-[ ] connection succeeds
-[ ] profile=RADTEL_RT950_KISS
-[ ] service=FFE0
-[ ] write=FFE1
-[ ] notify=FFE1
-[ ] sameCharacteristic=true
-[ ] FFE1 properties logged
-[ ] FFE1 handler attached exactly once per connection
-[ ] CCCD result=Success
-[ ] RT950 KISS READY
+Phase A completion evidence:
+- RT-950 real hardware session: PASS
+- Inspector post-refresh/post-close APRS RX: PASS
+- clean canonical build run 34013751226: SUCCESS
+- documentation/current-main build run 34013824529: SUCCESS
 
-A2 - RAW RX / KISS
-[ ] receive real RF/APRS packet through RT-950
-[ ] RAW BLE NOTIFICATION is present
-[ ] source UUID is FFE1
-[ ] length + HEX shown before KISS decode
-[ ] fragmented KISS frame is reassembled correctly
-[ ] malformed bytes remain visible
-
-A3 - GATT INSPECTOR CACHE REUSE
-[ ] Inspector shows cached FFE0 as AUTO-DETECT/REUSED
-[ ] FFE1 shows reused metadata
-[ ] second FFE0 GetCharacteristicsAsync is skipped
-[ ] no false FFE1 present:NO
-[ ] Inspector close/refresh does not disable main terminal subscription
-[ ] Auto Detect service is not disposed by Inspector
-
-A4 - SUBSCRIPTION RECOVERY
-[ ] if main CCCD fails, cached FFE1 can be enabled from Inspector
-[ ] successful Inspector retry updates main RT950 readiness
-[ ] if CCCD already active, Inspector reuses it without duplicate write
-
-A5 - OTHER PROFILE REGRESSION
-[ ] Nordic NUS connects and RX/TX works
-[ ] ESP32/custom BLE-UART connects and RX/TX works
-[ ] HM-10 FFE0/FFE1 connects
-[ ] HM-10 is not falsely labeled RT-950
-[ ] manual Custom UUID path works
-
-A6 - BASELINE DOCUMENTATION
-[ ] update RT950_TEST_CHECKLIST.txt with actual results
-[ ] correct any outdated Ubuntu-primary build wording
-[ ] update README if test procedure changed
-[ ] update this ROADMAP.txt
-[ ] record known-good commit + Actions run
-
-Completion gate:
-PHASE A cannot be COMPLETE until required RT-950 hardware tests pass.
-If only CI is verified, status must remain HARDWARE TEST PENDING.
+Next phase:
+PHASE B - KISS / AX.25 / APRS Decoder
 
 
 ----------------------------------------------------------------------
 PHASE B - KISS / AX.25 / APRS DECODER
-STATUS: NOT STARTED
+STATUS: IN PROGRESS
 PRIORITY: HIGH
 ----------------------------------------------------------------------
 
@@ -1084,16 +1060,22 @@ Result:
 - hardware qualification is deliberately tracked separately under PHASE A
 
 PHASE A
-Status: IN PROGRESS
+Status: COMPLETE
 Date started: 2026-09-06
-Remaining:
-- real RT-950 hardware qualification
-- other BLE profile regression as available
-- update actual checklist results
-- freeze known-good hardware baseline
+Date completed: 2026-09-06
+Result:
+- RT-950 Auto Detect / FFE0+FFE1 / CCCD / READY sequence PASS
+- real RAW FFE1 notification PASS
+- fragmented KISS reassembly PASS
+- Inspector cache reuse PASS
+- Inspector refresh/close followed by real APRS RX PASS
+- active-subscription reuse PASS
+- forced CCCD failure recovery NOT REPRODUCED
+- secondary NUS/ESP32/HM-10/manual hardware not requalified in this session
 
 PHASE B
-Status: NOT STARTED
+Status: IN PROGRESS
+Date started: 2026-09-06
 
 PHASE C
 Status: NOT STARTED
