@@ -9,5 +9,6 @@
   <ItemGroup>
     <Compile Include="../../TxPayloadBuilder.cs" Link="TxPayloadBuilder.cs" />
     <Compile Include="../../SerialTaskQueue.cs" Link="SerialTaskQueue.cs" />
+    <Compile Include="../../Rt950Rtx1Protocol.cs" Link="Rt950Rtx1Protocol.cs" />
   </ItemGroup>
 </Project>
