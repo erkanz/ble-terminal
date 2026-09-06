@@ -56,7 +56,8 @@ public partial class MainWindow
             return;
         }
 
-        _multiDeviceCompareWindow = new MultiDeviceCompareWindow
+        _multiDeviceCompareWindow = new MultiDeviceCompareWindow(
+            address => _connectedAddress.HasValue && _connectedAddress.Value == address)
         {
             Owner = this
         };
