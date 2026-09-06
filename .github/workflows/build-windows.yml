@@ -41,6 +41,10 @@ jobs:
         shell: pwsh
         run: python tests/STATIC_REGRESSION_CHECK.py
 
+      - name: Phase F GATT snapshot static checks
+        shell: pwsh
+        run: python tests/PHASE_F_STATIC_CHECK.py
+
       - name: Protocol decoder tests
         shell: pwsh
         run: dotnet run --project tests/ProtocolTests/ProtocolTests.csproj -c Release
@@ -60,6 +64,10 @@ jobs:
       - name: Manual RT950 GATT TX tests
         shell: pwsh
         run: dotnet run --project tests/ManualTxTests/ManualTxTests.csproj -c Release
+
+      - name: GATT snapshot compare tests
+        shell: pwsh
+        run: dotnet run --project tests/GattSnapshotTests/GattSnapshotTests.csproj -c Release
 
       - name: Restore
         shell: pwsh
