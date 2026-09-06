@@ -371,9 +371,9 @@ internal sealed class MultiDeviceSession : IAsyncDisposable
 
     private void DecodeFrame(KissFrame frame)
     {
-        if (!frame.IsDataCommand)
+        if (!frame.IsDataFrame)
             return;
-        if (!Ax25Decoder.TryDecode(frame.Data, out Ax25Packet? ax25, out _ ) || ax25 == null)
+        if (!Ax25Decoder.TryDecode(frame.Data, out Ax25Packet? ax25, out _) || ax25 == null)
             return;
 
         lock (_sync)
@@ -384,10 +384,10 @@ internal sealed class MultiDeviceSession : IAsyncDisposable
             _lastPath = string.IsNullOrWhiteSpace(ax25.Path) ? "-" : ax25.Path;
         }
 
-        if (!ax25.IsAprsUiFrame)
+        AprsPacket? aprs = AprsDecoder.Decode(ax25);
+        if (aprs == null)
             return;
 
-        AprsPacket aprs = AprsDecoder.Decode(ax25.Information);
         lock (_sync)
         {
             _aprsPackets++;
