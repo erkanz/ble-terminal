@@ -293,7 +293,7 @@ public partial class MainWindow
 
     private static string StripTerminalTimestamp(string line)
     {
-        if (!line.StartsWith('[', StringComparison.Ordinal))
+        if (!line.StartsWith("[", StringComparison.Ordinal))
             return line;
         int close = line.IndexOf("] ", StringComparison.Ordinal);
         return close >= 0 ? line[(close + 2)..] : line;
