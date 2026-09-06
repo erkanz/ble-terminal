@@ -53,6 +53,10 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/LogFilterTests/LogFilterTests.csproj -c Release
 
+      - name: Session capture replay tests
+        shell: pwsh
+        run: dotnet run --project tests/SessionTests/SessionTests.csproj -c Release
+
       - name: Restore
         shell: pwsh
         run: dotnet restore BLESerialTerminal.csproj -r win-x64
