@@ -1,0 +1,82 @@
+<Window x:Class="BLESerialTerminal.GattSnapshotWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GATT Snapshot / Compare" Width="1320" Height="820" MinWidth="1050" MinHeight="650"
+        Icon="Assets/BLESerialTerminal.ico"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource ForegroundBrush}"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="9">
+                <StackPanel>
+                    <TextBlock Text="Snapshot A (baseline)" FontWeight="SemiBold" FontSize="15"/>
+                    <TextBlock x:Name="SnapshotAText" Text="Not loaded" Foreground="{DynamicResource MutedForegroundBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                    <WrapPanel>
+                        <Button x:Name="CaptureAButton" Content="Capture current" Width="110" Margin="0,0,7,7" Click="CaptureAButton_Click"/>
+                        <Button Content="Load JSON..." Width="95" Margin="0,0,7,7" Click="LoadAButton_Click"/>
+                        <Button Content="Save JSON..." Width="95" Margin="0,0,7,7" Click="SaveAJsonButton_Click"/>
+                        <Button Content="Save TXT..." Width="90" Margin="0,0,7,7" Click="SaveATextButton_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="9">
+                <StackPanel>
+                    <TextBlock Text="Snapshot B (comparison)" FontWeight="SemiBold" FontSize="15"/>
+                    <TextBlock x:Name="SnapshotBText" Text="Not loaded" Foreground="{DynamicResource MutedForegroundBrush}" Margin="0,4,0,8" TextWrapping="Wrap"/>
+                    <WrapPanel>
+                        <Button x:Name="CaptureBButton" Content="Capture current" Width="110" Margin="0,0,7,7" Click="CaptureBButton_Click"/>
+                        <Button Content="Load JSON..." Width="95" Margin="0,0,7,7" Click="LoadBButton_Click"/>
+                        <Button Content="Save JSON..." Width="95" Margin="0,0,7,7" Click="SaveBJsonButton_Click"/>
+                        <Button Content="Save TXT..." Width="90" Margin="0,0,7,7" Click="SaveBTextButton_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <Button x:Name="CompareButton" Content="Compare A → B" Width="120" Margin="0,0,8,0" Click="CompareButton_Click"/>
+                    <Button Content="Swap A / B" Width="95" Margin="0,0,8,0" Click="SwapButton_Click"/>
+                    <Button Content="Export diff..." Width="100" Margin="0,0,8,0" Click="ExportDiffButton_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="SummaryText" Text="Load or capture two snapshots." VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="{DynamicResource MutedForegroundBrush}"/>
+            </DockPanel>
+        </Border>
+
+        <DataGrid x:Name="DiffGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Single" SelectionUnit="FullRow"
+                  EnableRowVirtualization="True" EnableColumnVirtualization="True"
+                  VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                  Background="{DynamicResource ControlBackgroundBrush}" Foreground="{DynamicResource ForegroundBrush}"
+                  BorderBrush="{DynamicResource BorderBrush}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Change" Binding="{Binding Change}" Width="95"/>
+                <DataGridTextColumn Header="Scope" Binding="{Binding Scope}" Width="125"/>
+                <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="260"/>
+                <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="180"/>
+                <DataGridTextColumn Header="A / Before" Binding="{Binding Before}" Width="*" MinWidth="180"/>
+                <DataGridTextColumn Header="B / After" Binding="{Binding After}" Width="*" MinWidth="180"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="7" Margin="0,8,0,0">
+            <TextBlock x:Name="StatusText" Text="Snapshot capture refreshes the Inspector first, reuses the protected Auto Detect cache for the active service, and never writes characteristic values." TextWrapping="Wrap" Foreground="{DynamicResource MutedForegroundBrush}"/>
+        </Border>
+    </Grid>
+</Window>
