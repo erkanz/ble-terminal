@@ -1,0 +1,219 @@
+BLE SERIAL TERMINAL - PHASE C TEST CHECKLIST
+=============================================
+Phase: C - Notification Monitor
+Status at creation: CI COMPLETE / HARDWARE TEST PENDING
+Repository: https://github.com/erkanz/ble-terminal
+Date: 2026-09-06
+
+PURPOSE
+-------
+Validate the real-time BLE notification analysis path without disturbing the Phase A
+BLE/GATT baseline or the Phase B KISS/AX.25/APRS decoder.
+
+The monitor is observational. A monitor/UI failure must never stop, delay, replace,
+or alter the main terminal notification processing path.
+
+IMPLEMENTATION BUILD PROVEN BY CI
+---------------------------------
+Implementation commit: d5df6b3889eaa66544f0dd9dead024406bd5a3e0
+GitHub Actions run: 34015754520
+Result: SUCCESS
+Artifact ID: 9983845422
+EXE size: 77,993,133 bytes
+EXE SHA-256: 95b0dabd8271b52a95c714ca3e57c75f053cf43aae49725d83a544e513ddcc20
+
+Automated result from that run:
+[x] static regression checks PASS
+[x] Phase B protocol decoder tests PASS - 40 checks
+[x] Phase C notification capture tests PASS - 15 checks
+[x] dotnet restore PASS
+[x] Windows self-contained single-file publish PASS
+[x] BLESerialTerminal.exe SHA-256 produced
+[x] Actions artifact upload PASS
+
+NOTE
+----
+README/checklist documentation commits made after the implementation run trigger their
+own Actions builds. For hardware qualification use the newest successful main artifact
+that contains these Phase C sources; do not use an older Phase B-only EXE.
+
+
+1. MONITOR OPEN / BASIC CAPTURE
+-------------------------------
+1) Start BLESerialTerminal.exe.
+2) Connect RT-950 using Auto Detect.
+3) Confirm main terminal reaches RADTEL KISS READY.
+4) Open View -> BLE Notification Monitor...
+5) Receive or generate BLE/KISS traffic.
+
+Expected:
+[ ] monitor opens without changing BLE connection state
+[ ] each FFE1 BLE notification produces one monitor row
+[ ] row sequence numbers increase monotonically
+[ ] Time is populated
+[ ] Device is populated
+[ ] Service shows FFE0 for RT-950 data traffic
+[ ] Characteristic shows FFE1
+[ ] Source shows Auto Detect/main source metadata
+[ ] Mode reports Notify/Indicate appropriately
+[ ] Len matches notification byte length
+[ ] HEX is visible in selected-row detail
+[ ] ASCII-safe view is visible
+[ ] terminal RAW BLE NOTIFICATION logging continues normally
+[ ] Phase B KISS/AX.25/APRS decoding continues normally
+
+
+2. FRAGMENTED KISS RELATION
+---------------------------
+Use a normal APRS packet that arrives as several BLE notifications.
+
+Expected:
+[ ] monitor shows the individual BLE notification fragments separately
+[ ] KISS column does not falsely turn each fragment into a complete frame
+[ ] KISS count becomes non-zero only when a fragment completes one or more KISS frames
+[ ] monitor KISS tracking does not change main terminal KISS reassembly
+[ ] decoded packet window still receives exactly the main decoded packet(s)
+
+
+3. PAUSE / RESUME DISPLAY
+-------------------------
+1) With traffic active, click Pause display.
+2) Generate several notifications while paused.
+3) Observe counters.
+4) Click Resume display.
+
+Expected:
+[ ] state reads PAUSED (capture continues)
+[ ] visible rows stop advancing while paused
+[ ] captured notification counter continues increasing
+[ ] captured byte counter continues increasing
+[ ] main terminal RX remains live while monitor display is paused
+[ ] Resume repopulates the visible list with captured backlog
+[ ] no BLE reconnect is required
+
+IMPORTANT
+Pause is display-only. If counters stop increasing while traffic is known to arrive,
+that is a FAIL.
+
+
+4. CLEAR / BOUNDED HISTORY
+--------------------------
+[ ] Clear removes monitor history
+[ ] Clear resets monitor notification/byte/per-characteristic counters
+[ ] Clear does NOT clear the main terminal log
+[ ] Clear does NOT clear the Phase B decoded-packet history
+[ ] capture resumes on the next incoming notification
+[ ] sequence numbering remains monotonic after Clear
+[ ] sustained capture remains responsive
+
+Automated coverage already proves a synthetic 20,000-notification input is counted while
+history remains bounded. Hardware test only needs to verify normal live behavior.
+
+
+5. COPY / EXPORT
+----------------
+Select a notification row.
+
+[ ] Copy HEX places the row HEX on the clipboard
+[ ] Copy text places the ASCII-safe form on the clipboard
+[ ] Export creates TSV output
+[ ] export contains sequence/timestamp/device/service/characteristic/source/mode/length
+[ ] export contains HEX and ASCII-safe data
+[ ] export includes related KISS-frame count when available
+[ ] export does not interrupt live capture
+
+
+6. GATT INSPECTOR MULTI-CHARACTERISTIC CAPTURE
+----------------------------------------------
+1) Keep Notification Monitor open.
+2) Open GATT Inspector.
+3) Enable Notify or Indicate on another notification-capable characteristic if the
+   connected device exposes one (for RT-950 this may be FF31/FF32 depending on firmware).
+4) Generate traffic for that characteristic if possible.
+
+Expected:
+[ ] monitor shows characteristic-specific rows separately
+[ ] Service UUID is correct
+[ ] characteristic UUID is correct
+[ ] Source/reused metadata is shown
+[ ] per-characteristic counters update independently
+[ ] no additional CCCD write is performed merely because Notification Monitor is open
+[ ] monitor follows Inspector's existing active subscription instead of creating a competing one
+[ ] disabling the Inspector subscription stops new monitor rows for that characteristic
+
+If no second notification-capable characteristic can be exercised on the available
+hardware, mark those specific items NOT AVAILABLE rather than fabricating PASS.
+
+
+7. RT-950 FFE1 DUPLICATE PROTECTION
+-----------------------------------
+The main Auto Detect FFE1 characteristic is already captured by the main terminal monitor
+observer. GATT Inspector may reuse the same cached FFE1 object/CCCD.
+
+Test:
+1) Connect RT-950 and open Notification Monitor.
+2) Receive traffic and note FFE1 row count.
+3) Open GATT Inspector while the same Auto Detect FFE1 subscription is active.
+4) Receive equivalent traffic again.
+
+Expected:
+[ ] Inspector reports cached/reused FFE1 as before
+[ ] main FFE1 CCCD remains active
+[ ] opening Inspector does not intentionally double the monitor FFE1 rows
+[ ] terminal receives each notification normally
+[ ] KISS/APRS decode is not duplicated
+[ ] closing Inspector does not stop later monitor or terminal FFE1 RX
+
+
+8. DISCONNECT / RECONNECT
+-------------------------
+[ ] disconnect removes/invalidates the connection-scoped capture observer safely
+[ ] no exception appears when a disconnect races an incoming notification
+[ ] reconnect attaches capture to the new connection characteristic wrapper
+[ ] notifications after reconnect appear in the monitor
+[ ] old/stale GATT wrapper is not reused
+[ ] main terminal Auto Reconnect behavior remains unchanged
+
+
+9. PHASE A / B REGRESSION
+-------------------------
+[ ] RT-950 Auto Detect still reports RADTEL_RT950_KISS
+[ ] service=FFE0
+[ ] write=FFE1
+[ ] notify=FFE1
+[ ] FFE1 CCCD result=Success
+[ ] RADTEL KISS READY
+[ ] RAW BLE NOTIFICATION still appears
+[ ] fragmented KISS still reassembles
+[ ] GATT Inspector still opens/refreshes/closes safely
+[ ] View -> Decoded KISS / AX.25 / APRS packets... still works
+[ ] one real APRS packet reaches AX.25/APRS decoded view
+
+The last decoded-packet item is also the still-open Phase B hardware completion gate.
+
+
+10. PHASE C COMPLETION GATE
+---------------------------
+Phase C may be marked COMPLETE only when:
+
+[x] Phase C code is committed
+[x] static Phase A/B/C regression checks are green
+[x] protocol decoder tests are green
+[x] notification capture tests are green
+[x] Windows publish is green
+[x] self-contained EXE artifact exists
+[ ] Notification Monitor receives real RT-950 FFE1 traffic
+[ ] Pause display proves capture continues while UI display is frozen
+[ ] Resume shows captured backlog
+[ ] Inspector open/close does not duplicate or break FFE1 capture
+[ ] disconnect/reconnect monitor behavior is verified
+[ ] no Phase A/B regression is observed
+[ ] ROADMAP.txt is updated with final Phase C status and exact known-good build
+
+Current Phase C status:
+CI COMPLETE / HARDWARE TEST PENDING
+
+Current Phase B status remains:
+HARDWARE TEST PENDING
+
+Do not mark either phase COMPLETE from CI alone.
