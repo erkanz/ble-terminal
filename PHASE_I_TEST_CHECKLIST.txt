@@ -1,0 +1,190 @@
+BLE SERIAL TERMINAL - PHASE I PRODUCTION HARDENING / RELEASE CHECKLIST
+=====================================================================
+Repository: https://github.com/erkanz/ble-terminal
+Phase: I - Production Hardening / Release
+Status: IN PROGRESS
+Date: 2026-09-06
+Branch: phase-i-production-hardening
+
+PURPOSE
+-------
+Harden the existing BLE/GATT/KISS/APRS application for release without rewriting or
+weakening the qualified v13 RT-950 ownership/cache/CCCD behavior. This phase is about
+lifecycle correctness, fault containment, compiler hygiene, sustained-use stability,
+diagnostics, release documentation and final packaging.
+
+NON-NEGOTIABLE BASELINE
+-----------------------
+[ ] NUS still connects/receives/transmits.
+[ ] HM-10 FFE0/FFE1 still works.
+[ ] generic BLE-UART Auto Detect still works.
+[ ] manual Custom UUID mode still works.
+[ ] RT-950 FFE0/FFE1 cache ownership remains connection-scoped.
+[ ] Inspector still reuses qualified cached FFE0/FFE1 objects.
+[ ] no second cached RT-950 FFE0 characteristic enumeration regression.
+[ ] FFE1 ValueChanged handler is attached before CCCD.
+[ ] only successful result-bearing CCCD write marks Notify active/READY.
+[ ] RAW BLE evidence remains before KISS/AX.25/APRS processing.
+[ ] KISS TCP Bridge remains OFF by default and localhost by default.
+[ ] Phase H compare sessions remain independent ownership domains.
+
+A - COMPILER / STATIC QUALITY GATE
+----------------------------------
+[ ] existing static regression PASS.
+[ ] Phase F static PASS.
+[ ] Phase G static PASS.
+[ ] Phase H static PASS.
+[ ] Phase I static PASS.
+[ ] compiler warnings gate PASS with TreatWarningsAsErrors=true.
+[ ] Protocol tests PASS.
+[ ] Notification tests PASS.
+[ ] Log Filter tests PASS.
+[ ] Session tests PASS.
+[ ] Manual RT950 TX tests PASS.
+[ ] GATT Snapshot tests PASS.
+[ ] KISS TCP Bridge tests PASS.
+[ ] Multi-Device Compare tests PASS.
+
+B - APPLICATION FAILURE DIAGNOSTICS
+-----------------------------------
+[ ] startup/exit can write best-effort runtime diagnostics.
+[ ] unexpected Dispatcher exception is logged before process termination.
+[ ] Dispatcher exception is NOT globally swallowed.
+[ ] AppDomain fatal exception is logged best-effort.
+[ ] unobserved background Task failure is logged and marked observed.
+[ ] diagnostics logging failure cannot crash the application.
+[ ] runtime log is bounded/rotated instead of growing forever.
+[ ] diagnostics directory is under LocalApplicationData/BLESerialTerminal/diagnostics.
+
+C - MAIN CONNECTION LIFECYCLE
+-----------------------------
+Run at least 20 connect/disconnect cycles on a supported BLE device.
+[ ] scan start/stop remains functional each cycle.
+[ ] connection can be established repeatedly.
+[ ] disconnect clears connection-scoped GATT wrappers.
+[ ] reconnect creates fresh wrappers.
+[ ] no duplicate ValueChanged callbacks after reconnect.
+[ ] no duplicate CCCD activation caused by reconnect.
+[ ] counters/READY state represent current connection only.
+[ ] app close while connected does not hang or crash.
+
+D - GATT INSPECTOR LIFECYCLE
+----------------------------
+[ ] open/refresh/close Inspector repeatedly while connected.
+[ ] cached RT-950 FFE0 ownership remains with MainWindow.
+[ ] Inspector does not dispose Auto Detect-owned service/characteristics.
+[ ] active cached FFE1 CCCD is not blindly rewritten.
+[ ] closing Inspector leaves ordinary RX operational.
+[ ] AccessDenied/DeviceUnreachable path shows diagnostic rather than UI crash when reproducible.
+
+E - NOTIFICATION / DECODE SOAK
+------------------------------
+[ ] receive sustained notifications for at least 30 minutes.
+[ ] Notification Monitor can stay open during traffic.
+[ ] pause/resume does not stop capture.
+[ ] decoded KISS/AX.25/APRS window stays responsive.
+[ ] bounded histories remain bounded.
+[ ] malformed/unsupported packet does not terminate RX pipeline.
+[ ] memory usage does not show unbounded growth from UI histories.
+
+F - LOG / SESSION / SNAPSHOT LIFECYCLE
+--------------------------------------
+[ ] Diagnostic Log window open/close repeatedly.
+[ ] full and filtered export works after long RX session.
+[ ] Session Capture start/stop repeated without duplicate event handlers.
+[ ] saved session loads and replays offline.
+[ ] replay never writes to live BLE.
+[ ] GATT Snapshot window capture/save/load/compare can be repeated.
+[ ] closing any diagnostic window leaves main BLE session usable.
+
+G - KISS TCP BRIDGE HARDENING
+-----------------------------
+[ ] bridge remains OFF at application startup.
+[ ] listener start/stop repeated at least 20 times.
+[ ] localhost client connect/disconnect repeated without leaked clients.
+[ ] BLE disconnect closes stale TCP clients.
+[ ] BLE reconnect uses fresh route/context.
+[ ] slow-client/backpressure policy disconnects client instead of unbounded buffering.
+[ ] bridge window close stops listener.
+[ ] application close while bridge is running does not hang.
+[ ] main FFE1 RX remains functional after bridge cycles.
+
+H - MULTI-DEVICE HARDENING
+--------------------------
+Requires two real supported devices.
+[ ] two sessions can run simultaneously.
+[ ] A RX never changes B state.
+[ ] B RX never changes A state.
+[ ] A TX never routes through B characteristic and vice versa.
+[ ] disconnect/reconnect A leaves B operational.
+[ ] close/reopen compare window creates fresh session wrappers.
+[ ] main-terminal-owned BLE address remains blocked from duplicate compare ownership.
+[ ] compare window close disposes all compare sessions.
+
+I - ERROR / CANCELLATION BEHAVIOR
+---------------------------------
+Where reproducible, exercise:
+[ ] BLE device powered off during connect.
+[ ] BLE device powered off while READY.
+[ ] GATT operation after disconnect race.
+[ ] cancelled bridge write.
+[ ] unavailable characteristic.
+[ ] CCCD failure / AccessDenied.
+[ ] TCP client abrupt disconnect.
+Expected:
+[ ] no routine condition causes an unhandled UI-thread exception.
+[ ] user-facing error is concise.
+[ ] detailed diagnostic evidence remains available.
+[ ] stale route/wrapper is rejected rather than reused.
+
+J - FINAL WINDOWS CI / ARTIFACT
+-------------------------------
+[ ] development PR CI fully green.
+[ ] source merged to main.
+[ ] authoritative main Actions run fully green.
+[ ] self-contained win-x64 EXE produced.
+[ ] EXE SHA-256 produced.
+[ ] artifact upload PASS.
+[ ] final artifact ID/run/hash recorded in ROADMAP.txt.
+
+K - RELEASE CANDIDATE SMOKE TEST
+--------------------------------
+On real Windows 10 2004+ or Windows 11 x64:
+[ ] launch EXE without separate .NET runtime installation.
+[ ] scan and connect a known supported BLE device.
+[ ] receive real data.
+[ ] transmit known-safe data.
+[ ] GATT Inspector opens.
+[ ] decoded packet window opens.
+[ ] Notification Monitor opens.
+[ ] Log Filter window opens.
+[ ] Session window opens.
+[ ] GATT Snapshot window opens.
+[ ] KISS TCP Bridge window opens but listener remains OFF.
+[ ] Multi-Device Compare window opens.
+[ ] app closes cleanly.
+
+L - RELEASE GATE
+----------------
+Do not mark Phase I COMPLETE or create the final v* release until:
+[ ] all automated/CI gates are green.
+[ ] no known release-blocking crash/hang/data-crossing defect remains.
+[ ] final Windows smoke test passes.
+[ ] required hardware validation claims are truthful and documented.
+[ ] ROADMAP.txt is updated with final main commit/run/artifact/SHA256.
+[ ] README limitations/support state is current.
+[ ] tagged GitHub Release contains BLESerialTerminal.exe and BLESerialTerminal.exe.sha256.
+
+OPEN HARDWARE GATES FROM EARLIER PHASES
+---------------------------------------
+These are NOT automatically closed by Phase I CI:
+- Phase B real decoded RT-950 packet UI validation.
+- Phase C real Notification Monitor validation.
+- Phase D live structured log/runtime validation.
+- Phase E real capture/offline replay validation.
+- RT950 Manual FF31 vs FFE1 write/response validation.
+- Phase F real snapshot/compare validation.
+- Phase G real RT-950 + external KISS TCP client validation.
+- Phase H real two-device isolation validation.
+
+Until those are actually performed, preserve their HARDWARE/RUNTIME TEST PENDING status.
