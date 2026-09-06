@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using BLESerialTerminal;
 
-static class Test
+internal static class Program
 {
     private static int _checks;
     private static readonly ConcurrentQueue<byte[]> BleWrites = new();
@@ -52,8 +52,8 @@ static class Test
 
             byte[] tcpPart1 = [0xC0, 0x00, 0x10];
             byte[] tcpPart2 = [0x11, 0xC0];
-            await client1.GetStream().WriteAsync(tcpPart1);
-            await client1.GetStream().WriteAsync(tcpPart2);
+            await client1.GetStream().WriteAsync(tcpPart1.AsMemory());
+            await client1.GetStream().WriteAsync(tcpPart2.AsMemory());
             await WaitUntilAsync(() => server.GetStats().BleTxBytes >= tcpPart1.Length + tcpPart2.Length, "TCP->BLE write completion");
             byte[] tcpCombined = BleWrites.SelectMany(x => x).ToArray();
             Check(tcpCombined.SequenceEqual(tcpPart1.Concat(tcpPart2)), "TCP stream bytes reach BLE writer unchanged across arbitrary reads");
@@ -74,7 +74,7 @@ static class Test
             Check(server.GetStats().Clients == 2, "multiple clients stay independent");
 
             byte[] malformed = [0xC0, 0x00, 0xDB, 0x01, 0xC0];
-            await client1.GetStream().WriteAsync(malformed);
+            await client1.GetStream().WriteAsync(malformed.AsMemory());
             await WaitUntilAsync(() => server.GetStats().MalformedFrames >= 1, "malformed KISS diagnostic");
             Check(server.GetStats().MalformedFrames >= 1, "malformed KISS is counted but raw bytes are still forwarded");
             Check(Events.Any(e => e.Kind == KissTcpBridgeEventKind.Warning && e.Message.Contains("Malformed TCP->BLE", StringComparison.Ordinal)), "malformed KISS produces diagnostic warning");
@@ -159,5 +159,3 @@ static class Test
         Check(false, description);
     }
 }
-
-return await Test.Main();
