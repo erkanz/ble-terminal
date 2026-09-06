@@ -178,6 +178,11 @@ internal sealed class NotificationCaptureStore
     }
 }
 
+internal static class NotificationCaptureHub
+{
+    internal static NotificationCaptureStore Store { get; } = new(10000);
+}
+
 internal sealed record NotificationSubscriptionMetadata(
     Guid ServiceUuid,
     string Source,
