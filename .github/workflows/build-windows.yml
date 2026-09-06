@@ -49,6 +49,10 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/NotificationTests/NotificationTests.csproj -c Release
 
+      - name: Log filter tests
+        shell: pwsh
+        run: dotnet run --project tests/LogFilterTests/LogFilterTests.csproj -c Release
+
       - name: Restore
         shell: pwsh
         run: dotnet restore BLESerialTerminal.csproj -r win-x64
