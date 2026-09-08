@@ -35,8 +35,9 @@ public partial class GattInspectorWindow
 
     private async void ReadBleNameButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button)
-            button.IsEnabled = false;
+        Button? sourceButton = sender as Button;
+        if (sourceButton != null)
+            sourceButton.IsEnabled = false;
 
         await _gattOperationGate.WaitAsync();
         try
@@ -99,8 +100,8 @@ public partial class GattInspectorWindow
         finally
         {
             _gattOperationGate.Release();
-            if (sender is Button button)
-                button.IsEnabled = true;
+            if (sourceButton != null)
+                sourceButton.IsEnabled = true;
         }
     }
 }
