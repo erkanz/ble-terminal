@@ -18,7 +18,10 @@ public partial class App : Application
     {
         base.OnActivated(e);
         if (MainWindow is BLESerialTerminal.MainWindow window)
+        {
             window.PrepareRt950Rtx1AutoUi();
+            window.PrepareUsbSerialUi();
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

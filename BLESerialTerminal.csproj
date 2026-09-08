@@ -23,6 +23,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets/BLESerialTerminal.ico" Condition="Exists('Assets/BLESerialTerminal.ico')" />
 
     <!-- ProtocolTests is a nested, independent console test project. Exclude its source

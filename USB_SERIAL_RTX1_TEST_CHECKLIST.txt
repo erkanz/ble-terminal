@@ -1,0 +1,51 @@
+USB SERIAL + RTX1 TEST CHECKLIST
+================================
+
+BUILD / STARTUP
+[ ] Windows CI compiler warnings gate PASS
+[ ] Self-contained win-x64 publish PASS
+[ ] Published EXE startup smoke PASS
+
+BLE DEVICE LIST UI
+[ ] Launch application
+[ ] Confirm "Scanned BLE Devices (N)" is shown as an Expander
+[ ] Collapse it; device table must hide and remaining UI must move up
+[ ] Expand it; scanned BLE device table must return
+[ ] Scan; header count must track visible scanned devices
+
+USB SERIAL UI
+[ ] Expand "USB Serial / COM Port"
+[ ] Click Refresh; available COM ports appear
+[ ] Select correct COM port and baud (115200 default)
+[ ] Connect; header/status shows selected COM port CONNECTED
+[ ] Disconnect; port and baud controls become editable again
+
+RAW SERIAL RX/TX
+[ ] With COM connected, send ASCII data using Raw TX
+[ ] Confirm RAW USB SERIAL TX log includes PORT/LEN/HEX
+[ ] Send HEX data and confirm exact bytes are written
+[ ] Generate device serial output
+[ ] Confirm RAW USB SERIAL RX log includes PORT/LEN/HEX
+[ ] Confirm received data is also appended to main terminal RX view
+
+RTX1 OVER USB SERIAL
+Prerequisite: firmware USB serial endpoint must accept the RTX1 binary host-TX packet.
+[ ] Connect COM port
+[ ] Click "Run RTX1 TX Test over USB"
+[ ] Confirm TRANSPORT=USB_SERIAL
+[ ] Confirm BLE_HANDSHAKE=NOT_APPLICABLE
+[ ] Confirm SRC=TEST-1 / DST=APRS / PATH=NONE / CTRL=03 / PID=F0
+[ ] Confirm INFO=>RT950 RTX1 BLE TX TEST #0001 (counter may be higher after earlier tests)
+[ ] Confirm AX25_FCS_VERIFY=PASS
+[ ] Confirm RTX1 USB SERIAL PACKET starts with ASCII RTX1 (52 54 58 31)
+[ ] Confirm WRITE_MODE=RAW_BINARY_STREAM
+[ ] Confirm RTX1_SERIAL_WRITE=PASS
+[ ] If firmware emits serial diagnostic bytes, confirm RTX1_DIAGNOSTIC_SERIAL_RX=SEEN_UNPARSED
+[ ] Confirm USB_SERIAL_TRANSPORT=PASS when write succeeds
+[ ] Confirm RTX1_DEVICE_ACK remains NOT_SEEN unless a verified ACK parser is later implemented
+[ ] Confirm RF_TX remains UNKNOWN unless RF emission is independently verified
+
+BLE RTX1 REGRESSION
+[ ] BLE RTX1 button still uses exact FF31 handshake -> FFE1 notifications/chunks
+[ ] BLE and USB RTX1 tests cannot run concurrently
+[ ] Existing BLE GATT discovery/notifications remain functional
