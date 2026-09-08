@@ -19,8 +19,11 @@ public partial class App : Application
         base.OnActivated(e);
         if (MainWindow is BLESerialTerminal.MainWindow window)
         {
-            window.PrepareRt950Rtx1AutoUi();
+            // USB Serial is a generic transport and belongs on the main diagnostic surface.
             window.PrepareUsbSerialUi();
+            // Device/protocol-specific tools are removed from the main surface and exposed
+            // only through Tools -> RT950 Tools / KISS Tools dedicated windows.
+            window.PrepareGenericMainUi();
         }
     }
 
