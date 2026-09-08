@@ -8,16 +8,29 @@ namespace BLESerialTerminal;
 
 public partial class GattInspectorWindow
 {
-    private bool _bleNameButtonAdded;
+    private bool _bleInfoButtonsAdded;
+
+    private static readonly (string Uuid, string Label, bool Text)[] DeviceInfoFields =
+    {
+        ("2A23", "System ID", false),
+        ("2A24", "Model Number", true),
+        ("2A25", "Serial Number", true),
+        ("2A26", "Firmware Revision", true),
+        ("2A27", "Hardware Revision", true),
+        ("2A28", "Software Revision", true),
+        ("2A29", "Manufacturer Name", true),
+        ("2A2A", "IEEE 11073 Certification Data", false),
+        ("2A50", "PnP ID", false)
+    };
 
     protected override void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
 
-        if (_bleNameButtonAdded)
+        if (_bleInfoButtonsAdded)
             return;
 
-        _bleNameButtonAdded = true;
+        _bleInfoButtonsAdded = true;
 
         if (RefreshButton.Parent is not StackPanel buttonPanel)
             return;
@@ -30,6 +43,17 @@ public partial class GattInspectorWindow
             ToolTip = "Read Generic Access Device Name (1800 / 2A00). Read-only; no setting is changed."
         };
         readBleNameButton.Click += ReadBleNameButton_Click;
+
+        var readModuleInfoButton = new Button
+        {
+            Content = "Read Module Info",
+            Width = 125,
+            Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Read Device Information Service (180A). Read-only; no setting is changed."
+        };
+        readModuleInfoButton.Click += ReadModuleInfoButton_Click;
+
+        buttonPanel.Children.Insert(0, readModuleInfoButton);
         buttonPanel.Children.Insert(0, readBleNameButton);
     }
 
@@ -42,10 +66,7 @@ public partial class GattInspectorWindow
         await _gattOperationGate.WaitAsync();
         try
         {
-            GattCharacteristicInfo? nameInfo = _services
-                .Where(service => BleUuid.Is(service.Service.Uuid, "1800"))
-                .SelectMany(service => service.Characteristics)
-                .FirstOrDefault(characteristic => BleUuid.Is(characteristic.Characteristic.Uuid, "2A00"));
+            GattCharacteristicInfo? nameInfo = FindCharacteristic("1800", "2A00");
 
             if (nameInfo == null)
             {
@@ -103,5 +124,128 @@ public partial class GattInspectorWindow
             if (sourceButton != null)
                 sourceButton.IsEnabled = true;
         }
+    }
+
+    private async void ReadModuleInfoButton_Click(object sender, RoutedEventArgs e)
+    {
+        Button? sourceButton = sender as Button;
+        if (sourceButton != null)
+            sourceButton.IsEnabled = false;
+
+        await _gattOperationGate.WaitAsync();
+        try
+        {
+            bool servicePresent = _services.Any(service => BleUuid.Is(service.Service.Uuid, "180A"));
+            if (!servicePresent)
+            {
+                Log("*** BLE MODULE INFO READ FAILED");
+                Log("SERVICE=180A NOT FOUND");
+                return;
+            }
+
+            Log("*** BLE MODULE INFO READ START");
+            Log("SERVICE=180A");
+
+            var summary = new StringBuilder();
+            int successCount = 0;
+
+            foreach ((string uuid, string label, bool isText) in DeviceInfoFields)
+            {
+                GattCharacteristicInfo? info = FindCharacteristic("180A", uuid);
+                if (info == null)
+                {
+                    Log($"{label} [{uuid}]: NOT FOUND");
+                    summary.AppendLine($"{label}: not exposed");
+                    continue;
+                }
+
+                GattCharacteristic characteristic = info.Characteristic;
+                if (!characteristic.CharacteristicProperties.HasFlag(GattCharacteristicProperties.Read))
+                {
+                    Log($"{label} [{uuid}]: READ PROPERTY NOT AVAILABLE");
+                    summary.AppendLine($"{label}: not readable");
+                    continue;
+                }
+
+                try
+                {
+                    GattReadResult result = await characteristic.ReadValueAsync(BluetoothCacheMode.Uncached);
+                    Log($"onCharacteristicRead uuid={uuid} {StatusText(result.Status, result.ProtocolError)}");
+
+                    if (result.Status != GattCommunicationStatus.Success || result.Value == null)
+                    {
+                        Log($"{label} [{uuid}]: READ FAILED {StatusText(result.Status, result.ProtocolError)}");
+                        summary.AppendLine($"{label}: read failed ({result.Status})");
+                        continue;
+                    }
+
+                    byte[] data = BufferToBytes(result.Value);
+                    Interlocked.Add(ref _rxBytes, data.Length);
+                    _dataReceived = true;
+                    successCount++;
+
+                    if (isText)
+                    {
+                        string text = Encoding.UTF8.GetString(data).TrimEnd('\0');
+                        Log($"{label} [{uuid}]: {text}");
+                        Log($"{label} HEX={Hex(data)}");
+                        summary.AppendLine($"{label}: {(string.IsNullOrEmpty(text) ? "(empty)" : text)}");
+                    }
+                    else
+                    {
+                        string decoded = DecodeDeviceInfoBinary(uuid, data);
+                        Log($"{label} [{uuid}]: {decoded}");
+                        Log($"{label} HEX={Hex(data)}");
+                        summary.AppendLine($"{label}: {decoded}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log($"{label} [{uuid}]: READ ERROR exception={ex.Message}");
+                    summary.AppendLine($"{label}: read error");
+                }
+            }
+
+            Log($"*** BLE MODULE INFO READ COMPLETE success={successCount}/{DeviceInfoFields.Length}");
+            UpdateStatePanel();
+
+            MessageBox.Show(
+                this,
+                summary.Length == 0 ? "No Device Information fields were readable." : summary.ToString().TrimEnd(),
+                "BLE Module Info (180A)",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            Log($"*** BLE MODULE INFO READ ERROR exception={ex.Message}");
+        }
+        finally
+        {
+            _gattOperationGate.Release();
+            if (sourceButton != null)
+                sourceButton.IsEnabled = true;
+        }
+    }
+
+    private GattCharacteristicInfo? FindCharacteristic(string serviceUuid, string characteristicUuid)
+    {
+        return _services
+            .Where(service => BleUuid.Is(service.Service.Uuid, serviceUuid))
+            .SelectMany(service => service.Characteristics)
+            .FirstOrDefault(characteristic => BleUuid.Is(characteristic.Characteristic.Uuid, characteristicUuid));
+    }
+
+    private static string DecodeDeviceInfoBinary(string uuid, byte[] data)
+    {
+        if (BleUuid.Is(Guid.Parse("0000" + uuid + "-0000-1000-8000-00805F9B34FB"), "2A50") && data.Length >= 7)
+        {
+            ushort vendorId = (ushort)(data[1] | (data[2] << 8));
+            ushort productId = (ushort)(data[3] | (data[4] << 8));
+            ushort productVersion = (ushort)(data[5] | (data[6] << 8));
+            return $"source=0x{data[0]:X2}, vendor=0x{vendorId:X4}, product=0x{productId:X4}, version=0x{productVersion:X4}";
+        }
+
+        return Hex(data);
     }
 }
