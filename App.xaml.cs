@@ -21,8 +21,10 @@ public partial class App : Application
         {
             // USB Serial is a generic transport and belongs on the main diagnostic surface.
             window.PrepareUsbSerialUi();
-            // Device/protocol-specific tools are removed from the main surface and exposed
-            // only through Tools -> RT950 Tools / KISS Tools dedicated windows.
+            // Remove persisted/special protocol presentation before the standard cleanup so
+            // no RT950/KISS migration or tool output leaks onto the generic terminal surface.
+            window.PrepareStrictGenericMainUi();
+            // Device/protocol-specific tools are exposed only through dedicated tool windows.
             window.PrepareGenericMainUi();
         }
     }
