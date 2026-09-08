@@ -1,0 +1,45 @@
+USB SERIAL + RTX1 IMPLEMENTATION NOTES
+=====================================
+
+Purpose
+-------
+Add first-class Windows COM-port support to BLE Serial Terminal while preserving the already-verified RT950 BLE RTX1 path.
+
+UI
+--
+- Existing BLE device table is hosted under a collapsible "Scanned BLE Devices (N)" expander.
+- New "USB Serial / COM Port" expander provides:
+  - COM port refresh/list
+  - Baud selection (115200 default)
+  - Connect / Disconnect
+  - Raw ASCII / HEX TX with configurable line ending
+  - "Run RTX1 TX Test over USB"
+
+USB Serial Terminal
+-------------------
+- Uses System.IO.Ports.SerialPort.
+- Serial RX is logged as RAW USB SERIAL RX and also appended to the normal terminal RX view.
+- Serial TX is logged as RAW USB SERIAL TX.
+- BLE and USB byte counters share the existing RX/TX counter display.
+
+RTX1 over USB
+-------------
+BLE transport remains unchanged:
+  FF31 exact 20-byte handshake -> wait FFE1 notification -> RTX1 packet via FFE1 20-byte write-with-response chunks.
+
+USB serial transport does NOT fabricate GATT semantics. There are no UUIDs or CCCDs on a COM stream.
+For USB, the application:
+  1. Builds the same AX.25 UI frame with TEST-1 -> APRS, no path, control 03, PID F0.
+  2. Calculates and self-verifies CRC-16/X.25 FCS.
+  3. Builds the same binary RTX1 packet: ASCII "RTX1" + raw AX.25 + FCS little-endian.
+  4. Writes that packet directly to the connected COM stream in one raw binary write.
+  5. Logs any serial response for 2 seconds as an unparsed diagnostic.
+
+Result separation is intentional:
+- USB_SERIAL_TRANSPORT=PASS means the OS serial write completed.
+- RTX1_DEVICE_ACK remains NOT_SEEN unless a verified ACK format is implemented.
+- RF_TX remains UNKNOWN unless RF emission is independently verified.
+
+Concurrency
+-----------
+BLE and USB RTX1 tests share the same _rtx1TestInProgress gate, so they cannot overlap.

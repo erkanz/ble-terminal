@@ -45,6 +45,10 @@ jobs:
         shell: pwsh
         run: python tests/OPTIONAL_MODULES_STATIC_CHECK.py
 
+      - name: USB serial and RTX1 static checks
+        shell: pwsh
+        run: python tests/USB_SERIAL_STATIC_CHECK.py
+
       - name: Phase F GATT snapshot static checks
         shell: pwsh
         run: python tests/PHASE_F_STATIC_CHECK.py
