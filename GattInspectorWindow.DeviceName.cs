@@ -53,6 +53,16 @@ public partial class GattInspectorWindow
         };
         readModuleInfoButton.Click += ReadModuleInfoButton_Click;
 
+        var readGattLabelsButton = new Button
+        {
+            Content = "Read GATT Labels",
+            Width = 125,
+            Margin = new Thickness(8, 0, 0, 0),
+            ToolTip = "Read Characteristic User Description descriptors (2901). Read-only; no setting is changed."
+        };
+        readGattLabelsButton.Click += ReadGattLabelsButton_Click;
+
+        buttonPanel.Children.Insert(0, readGattLabelsButton);
         buttonPanel.Children.Insert(0, readModuleInfoButton);
         buttonPanel.Children.Insert(0, readBleNameButton);
     }
@@ -219,6 +229,83 @@ public partial class GattInspectorWindow
         catch (Exception ex)
         {
             Log($"*** BLE MODULE INFO READ ERROR exception={ex.Message}");
+        }
+        finally
+        {
+            _gattOperationGate.Release();
+            if (sourceButton != null)
+                sourceButton.IsEnabled = true;
+        }
+    }
+
+    private async void ReadGattLabelsButton_Click(object sender, RoutedEventArgs e)
+    {
+        Button? sourceButton = sender as Button;
+        if (sourceButton != null)
+            sourceButton.IsEnabled = false;
+
+        await _gattOperationGate.WaitAsync();
+        try
+        {
+            Log("*** GATT USER DESCRIPTION READ START");
+            int found = 0;
+            int success = 0;
+            var summary = new StringBuilder();
+
+            foreach (GattServiceInfo service in _services)
+            {
+                foreach (GattCharacteristicInfo characteristicInfo in service.Characteristics)
+                {
+                    foreach (GattDescriptor descriptor in characteristicInfo.Descriptors.Where(d => BleUuid.Is(d.Uuid, "2901")))
+                    {
+                        found++;
+                        string serviceUuid = BleUuid.Short(service.Service.Uuid);
+                        string characteristicUuid = BleUuid.Short(characteristicInfo.Characteristic.Uuid);
+
+                        try
+                        {
+                            GattReadResult result = await descriptor.ReadValueAsync(BluetoothCacheMode.Uncached);
+                            Log($"onDescriptorRead uuid=2901 service={serviceUuid} char={characteristicUuid} {StatusText(result.Status, result.ProtocolError)}");
+
+                            if (result.Status != GattCommunicationStatus.Success || result.Value == null)
+                            {
+                                Log($"LABEL service={serviceUuid} char={characteristicUuid}: READ FAILED {StatusText(result.Status, result.ProtocolError)}");
+                                summary.AppendLine($"{serviceUuid}/{characteristicUuid}: read failed");
+                                continue;
+                            }
+
+                            byte[] data = BufferToBytes(result.Value);
+                            string text = Encoding.UTF8.GetString(data).TrimEnd('\0');
+                            Interlocked.Add(ref _rxBytes, data.Length);
+                            _dataReceived = true;
+                            success++;
+
+                            Log($"LABEL service={serviceUuid} char={characteristicUuid}: {text}");
+                            Log($"LABEL HEX={Hex(data)}");
+                            summary.AppendLine($"{serviceUuid}/{characteristicUuid}: {(string.IsNullOrEmpty(text) ? "(empty)" : text)}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"LABEL service={serviceUuid} char={characteristicUuid}: READ ERROR exception={ex.Message}");
+                            summary.AppendLine($"{serviceUuid}/{characteristicUuid}: read error");
+                        }
+                    }
+                }
+            }
+
+            Log($"*** GATT USER DESCRIPTION READ COMPLETE success={success}/{found}");
+            UpdateStatePanel();
+
+            MessageBox.Show(
+                this,
+                found == 0 ? "No 2901 Characteristic User Description descriptors were discovered." : summary.ToString().TrimEnd(),
+                "GATT Labels (2901)",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            Log($"*** GATT USER DESCRIPTION READ ERROR exception={ex.Message}");
         }
         finally
         {
