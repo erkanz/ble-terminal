@@ -49,6 +49,10 @@ jobs:
         shell: pwsh
         run: python tests/USB_SERIAL_STATIC_CHECK.py
 
+      - name: Generic main UI separation checks
+        shell: pwsh
+        run: python tests/GENERIC_MAIN_UI_STATIC_CHECK.py
+
       - name: Phase F GATT snapshot static checks
         shell: pwsh
         run: python tests/PHASE_F_STATIC_CHECK.py
